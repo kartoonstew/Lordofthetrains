@@ -3,7 +3,7 @@ import math
 
 import numpy as np
 
-from . import layout as L, scene, terrain
+from . import layout as L, parts, scene, terrain
 
 X_RANGE = L.MODEL_X
 Y_RANGE = (L.LANE_Y, L.BACK_Y)
@@ -36,4 +36,5 @@ def build():
     faces = np.concatenate([top_faces, bottom_faces, side_faces]).tolist()
     obj = scene.add_mesh_object("hill", verts.tolist(), faces, "terrain")
     obj.data.shade_smooth()     # render only: hides the grid's facets on steep banks
+    obj.data.materials.append(parts.materials()["turf"])     # the same mottled turf as the sods
     return obj

@@ -23,7 +23,9 @@ def test_build_twice_gives_one_of_each():
     build.build_scene()
     names = [o.name for o in bpy.data.objects]
     assert "hill" in names and "doorfront_door_boards" in names and "oak_crown" in names
-    assert "ornate_bargeboard" in names and "lattice_window_window_bars" in names
+    assert "round_window_left_window_bars" in names and "lattice_window_window_bars" in names
+    garden_parts = {"bench", "gate", "letterbox", "birdhouse", "lamp_0_post", "chimney_pot_0", "bed_0", "step_0"}
+    assert garden_parts <= set(names), garden_parts - set(names)
     assert not [n for n in names if n.startswith(("front_", "eave_", "window_"))]       # no block-outs left
     dupes = [n for n in names if re.search(r"\.\d{3}$", n)]
     assert not dupes, dupes

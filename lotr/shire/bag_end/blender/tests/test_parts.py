@@ -134,3 +134,24 @@ def test_bake_cuts_makes_a_real_hole_and_removes_the_cutters():
     through, *_ = bpy.context.scene.ray_cast(dg, Vector((0.0, -1.0, 1.0)), Vector((0.0, 1.0, 0.0)))
     beside, *_ = bpy.context.scene.ray_cast(dg, Vector((0.6, -1.0, 1.0)), Vector((0.0, 1.0, 0.0)))
     assert not through and beside
+
+
+def test_flagstone_is_a_closed_slab_with_its_top_at_the_tread():
+    scene.reset_scene()
+    bm = bmesh.new()
+    P.flagstone(bm, (1.0, 2.0, 0.5), 1.05, 0.44, 0.1, 0.3, random.Random(2), 5)
+    obj = P.to_object("slab", bm, None, "test", bevel=0.012)
+    assert is_closed(obj)
+    zs = [v.co.z for v in obj.data.vertices]
+    assert 0.49 <= max(zs) <= 0.5 + 1e-6 and abs(min(zs) - 0.4) < 0.02, (min(zs), max(zs))
+
+
+def test_rough_materials_vary_across_a_surface():
+    # Plaster, stone, turf and soil vary in soft patches, so they don't render as flat toy colours.
+    scene.reset_scene()
+    m = P.materials()
+    assert {"soil", "bark", "leaves"} <= set(m)
+    for name in ("plaster", "stone", "turf", "soil"):
+        kinds = {n.type for n in m[name].node_tree.nodes}
+        colour = m[name].node_tree.nodes["Principled BSDF"].inputs["Base Color"]
+        assert "TEX_NOISE" in kinds and colour.is_linked, name

@@ -102,7 +102,7 @@ def build(seed=7):
     obj("soffit_centre", soffit, "timber", bevel=0.006)
 
     iron, glass = bmesh.new(), bmesh.new()
-    P.lantern(iron, glass, -0.13, eave_centre(0.0) - 0.2)
+    P.lantern(iron, glass, -0.13, eave_centre(0.0) - 0.12)     # hangs clear of the door
     obj("lantern", iron, "iron")
     obj("lantern_glass", glass, "glass")
 
@@ -146,7 +146,8 @@ def build(seed=7):
         obj(f"{label}_soffit", soffit, "timber", mat, bevel=0.006)
 
         bm = bmesh.new()
-        P.sod(bm, su, eave_side, -EAVE_OUT + 0.06, WALL_DEPTH)
+        # the side turf reaches back over the centre facet too, so no wedge opens behind the post
+        P.sod(bm, [-0.4 + (S + 0.4) * i / 24 for i in range(25)], eave_side, -EAVE_OUT + 0.06, WALL_DEPTH)
         obj(f"{label}_sod", bm, "turf", mat)
 
         P.pot(f"doorfront_pot_{label}", m["terracotta"], "props", place @ Matrix.Translation((s * 1.02, -0.42, 0.0)))

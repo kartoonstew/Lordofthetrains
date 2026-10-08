@@ -1,10 +1,14 @@
-"""The four fronts other than the door front, in rustic detail, built with frontkit and parts.
+"""The fronts other than the door front, in rustic detail, built with frontkit and parts.
 
-- round_window_west, round_window_rack: small fronts with an arched eave and one round window
-  with wheel glazing (refs/09, 10).
+build() makes the ones layout.FRONTS lists: the small round window front at the left
+(round_window_left) and the lattice window front. BUILDERS also keeps builders for the full row's
+spare fronts, for later hobbit holes.
+
+- round_window_left, round_window_west, round_window_rack: small fronts with an arched eave and one
+  round window with wheel glazing (refs/09, 10).
 - lattice_window: the round window with a square lattice in a heavy timber ring (refs/03, 05).
-- ornate: the big front with the carved arched bargeboard, half-timbering and a tall arched
-  leaded window, plus a small round window on its left wing (refs/08, 09).
+- ornate (spare): the big front with the carved arched bargeboard, half-timbering and a tall
+  arched leaded window, plus a small round window on its left wing (refs/08, 09).
 """
 import math
 
@@ -18,6 +22,7 @@ D = L.D
 # Round windows: (u, centre height above the front's floor, radius to the outside of the frame),
 # refs/03, 05, 08-10. The ornate front's is the small one on its left wing.
 ROUND_WINDOWS = {
+    "round_window_left": (0.0, 0.68 * D, 0.20 * D),
     "round_window_west": (0.0, 0.70 * D, 0.20 * D),
     "round_window_rack": (0.0, 0.72 * D, 0.22 * D),
     "lattice_window": (0.0, 0.87, 0.30 * D),
@@ -101,7 +106,7 @@ def ornate_front(seed=17):
     P.arc_block(ht, 0.0, spring, post_u - 0.07, post_u + 0.07, 0.0, math.pi, -0.06, 0.06, seg=24)
     for u in (-0.55, 0.0, 0.55):                                  # studs from the arch up to the bargeboard
         z0 = spring + math.sqrt((post_u + 0.07) ** 2 - u * u) - 0.03
-        z1 = top(u) - 0.27
+        z1 = top(u) - 0.10                                    # up into the header band
         P.timber(ht, (u, -0.02, (z0 + z1) / 2), (0.12, 0.11, z1 - z0), seed=seed + 40 + round(u * 10))
     b.obj("timbering", ht, "timber", bevel=0.01)
 
@@ -113,7 +118,7 @@ def ornate_front(seed=17):
     for d0, d1 in ((0.03, 0.0), (-0.27, -0.30)):                  # a bead along each edge
         P.extrude(band, K.arch_offset(f, d0) + list(reversed(K.arch_offset(f, d1))), -0.59, -0.54)
     for s in (-1, 1):
-        P.box(band, (s * (arch - 0.135), -0.47, f.eave_ends - 0.17), (0.40, 0.2, 0.34))
+        P.box(band, (s * (arch - 0.135), -0.47, f.eave_ends - 0.17), (0.40, 0.24, 0.34))    # flush with the beads
     b.obj("bargeboard", band, "timber", bevel=0.008)
     knots = bmesh.new()
     mid = K.arch_offset(f, -0.135, n=600)
@@ -131,11 +136,20 @@ def ornate_front(seed=17):
     return b.objects()
 
 
+BUILDERS = {
+    "round_window_left": lambda: round_window_front("round_window_left", seed=10),
+    "round_window_west": lambda: round_window_front("round_window_west", seed=11),
+    "round_window_rack": lambda: round_window_front("round_window_rack", seed=12),
+    "lattice_window": lattice_front,
+    "ornate": ornate_front,
+}
+
+
 def build():
-    """Build the four fronts; return their objects."""
+    """Build every front in layout.FRONTS except the door front (doorfront.py); return their objects."""
     objs = []
-    objs += round_window_front("round_window_west", seed=11)
-    objs += round_window_front("round_window_rack", seed=12)
-    objs += lattice_front()
-    objs += ornate_front()
+    for f in L.FRONTS:
+        if f.name == "door":
+            continue
+        objs += BUILDERS[f.name]()            # a front without a builder is a KeyError, not a gap
     return objs

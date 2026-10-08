@@ -19,6 +19,24 @@ def smin(a, b, k):
     return np.minimum(a, b) - h * h * k / 4
 
 
+# The turf's lumps: a few long gentle waves and some short ones, crossing at odd angles, so the
+# hill reads as grown rather than modelled. (amplitude m, wavelength m, direction °, phase)
+_waves = np.random.default_rng(7)
+LUMPS = tuple((0.04, wl, d, p) for wl, d, p in zip(_waves.uniform(2.5, 5.0, 5), _waves.uniform(0, 180, 5),
+                                                     _waves.uniform(0, 2 * np.pi, 5))) + \
+        tuple((0.012, wl, d, p) for wl, d, p in zip(_waves.uniform(0.8, 1.4, 8), _waves.uniform(0, 180, 8),
+                                                      _waves.uniform(0, 2 * np.pi, 8)))
+
+
+def lumps(x, y):
+    """Gentle irregular undulation for the turf, about ±0.1 m."""
+    z = 0.0 * x
+    for amp, wl, deg, phase in LUMPS:
+        a = np.radians(deg)
+        z = z + amp * np.sin(2 * np.pi / wl * (x * np.cos(a) + y * np.sin(a)) + phase)
+    return z
+
+
 def garden(x, y):
     """Lane and lawn in front, the dry-stone wall, then the terrace path along the fronts."""
     lawn = L.LANE_Z + (L.LAWN_Z - L.LANE_Z) * ramp(y, L.LANE_Y, L.WALL_Y)
@@ -26,14 +44,20 @@ def garden(x, y):
 
 
 def hill(x, y):
-    """The Hill: a bank over the fronts, then a steep climb to the top, swelling over the ornate front."""
-    ornate = L.front("ornate")
-    swell = L.ORNATE_RISE * np.exp(-(((x - ornate.x) / 5.0) ** 2))
-    height = L.CREST_Z + swell + (L.RIDGE_Z - L.CREST_Z) * ramp(y, L.CREST_Y, L.RIDGE_Y)
+    """The Hill, refs/03: a rounded dome over the fronts, flat-topped, with a bank in front over the
+    fronts and any swells layout.py adds. At its ends and back it falls steeply to the model's thin
+    edge (3-4.6 m within the last 1 m)."""
+    cx, cy = L.DOME_CENTRE
+    ax, ay = L.DOME_RADII
+    r = np.sqrt(((x - cx) / ax) ** 2 + ((y - cy) / ay) ** 2)
+    dome = np.clip(1.0 - r ** L.DOME_POWER, 0.0, None)
+    swell = 0.0 * x
+    for sx, sh, sw in L.SWELLS:
+        swell = swell + sh * np.exp(-(((x - sx) / sw) ** 2))
+    height = (L.CREST_Z + (L.DOME_TOP - L.CREST_Z) * ramp(y, L.CREST_Y, L.DOME_CENTRE[1] + 0.8) + swell) * dome
     front = ramp(y, L.CREST_Y - 2.2, L.CREST_Y)
-    ends = ramp(x, L.MODEL_X[0], L.MODEL_X[0] + L.END_FALL) * ramp(L.MODEL_X[1] - x, 0.0, L.END_FALL)
-    back = ramp(L.BACK_Y - y, 0.0, L.BACK_FALL)
-    return height * front * ends * back
+    h = height * front
+    return h + lumps(x, y) * ramp(h, 0.0, 1.0)      # lumps only where the hill has risen
 
 
 BACK_SLOPE = 62.0   # degrees: the turf climbs from a front's eave back into the hill
@@ -56,15 +80,21 @@ def dig(f, x, y):
     v = -dx * np.sin(a) + dy * np.cos(a) - L.facade_v(f, u)
     du = np.maximum(0.0, np.abs(u) - f.width / 2)
     inside = du == 0.0                   # behind the facade, within the front's wall mass
+    ue = np.abs(u)                       # where along the front the sod above this point sits...
+    deep = v                             # ...and how far behind the facade, square to it
     if f.centre:                         # a side facet's wall ends square to the facet, not to the row
         w = np.radians(f.wing_angle)
-        along = (np.abs(u) - f.centre) * np.cos(w) + (v + L.facade_v(f, u)) * np.sin(w)
-        inside &= along <= (f.width / 2 - f.centre) / np.cos(w)
+        side = ue > f.centre
+        along = (ue - f.centre) * np.cos(w) + (v + L.facade_v(f, u)) * np.sin(w)
+        inside &= along <= (f.width / 2 - f.centre) / np.cos(w) - L.POST / 2
+        ue = np.where(side, f.centre + along * np.cos(w), ue)
+        deep = np.where(side, v * np.cos(w), v)
+    sod = L.eave_top(f, ue)
     lip = f.eave_ends + L.SOD
-    cheek = lip * ramp(du, 0.0, 0.4) * ramp(v, -lip / np.tan(np.radians(60)), 0.0)
+    cheek = lip * ramp(du, 0.0, 0.25) * ramp(v, -lip / np.tan(np.radians(60)), 0.0)   # meets the turf at the facade
     bank = f.floor + np.tan(np.radians(50)) * du + cheek
-    turf = (f.floor + L.eave_top(f, u) + L.SOD - TUCK
-            + np.maximum(0.0, v - L.WALL_DEPTH) * np.tan(np.radians(BACK_SLOPE)))
+    turf = (f.floor + sod + L.SOD - TUCK
+            + np.maximum(0.0, deep - L.WALL_DEPTH) * np.tan(np.radians(BACK_SLOPE)))
     behind = np.where(inside & (v < f.dig_behind), f.floor, np.maximum(bank, turf))
     return np.where(v < 0.0, bank, behind)
 

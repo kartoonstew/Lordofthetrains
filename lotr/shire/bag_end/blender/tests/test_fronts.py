@@ -7,7 +7,10 @@ from mathutils.kdtree import KDTree
 
 from bagend import frontkit as K, fronts, garden, hill, layout as L, scene
 
-NAMES = ("round_window_west", "round_window_rack", "lattice_window", "ornate")
+# Every front this scene lists except the door front (it has its own tests), so a front added to
+# layout.FRONTS without a builder fails here. The full row's spare fronts are built directly by
+# their builders where a test needs them.
+NAMES = tuple(f.name for f in L.FRONTS if f.name != "door")
 
 
 def first_hit(origin, target):
@@ -37,8 +40,6 @@ def test_windows_can_be_seen_with_the_hill_and_garden_built():
     fronts.build()
     garden.build()
     targets = [(n, *fronts.ROUND_WINDOWS[n][:2]) for n in NAMES]
-    half, z0, height = fronts.ARCHED_WINDOW
-    targets.append(("ornate", 0.0, z0 + 0.4 * height))
     for name, u, z in targets:
         place = K.placement(L.front(name))
         centre = place @ Vector((u, 0.0, z))
@@ -62,7 +63,7 @@ def test_each_front_fills_its_dug_out():
 
 def test_ornate_bargeboard_follows_the_eave():
     scene.reset_scene()
-    fronts.build()
+    fronts.ornate_front()
     f = L.front("ornate")
     band = bpy.data.objects["ornate_bargeboard"]
     to_front = K.placement(f).inverted() @ band.matrix_world
@@ -84,7 +85,7 @@ def front_points(name, part):
 def test_ornate_bargeboard_keeps_its_width_down_to_its_feet():
     # refs/08: an even band all the way down; measured across, low on the flank, it is still wide.
     scene.reset_scene()
-    fronts.build()
+    fronts.ornate_front()
     f, pts = front_points("ornate", "bargeboard")
     z = f.eave_ends + 0.3
     us = [p.x for p in pts if p.x > 0 and abs(p.z - z) < 0.05]     # a slice deep enough to catch both edges
@@ -105,7 +106,7 @@ def test_arch_offset_stays_its_distance_from_the_eave():
 def test_soffit_boards_follow_the_eave_across_their_width():
     # On the ornate front's steep arch, flat boards would step like ladder rungs.
     scene.reset_scene()
-    fronts.build()
+    fronts.ornate_front()
     f, pts = front_points("ornate", "soffit")
     for p in pts:
         if abs(p.x) <= 0.95 * f.arch:
@@ -146,5 +147,14 @@ def test_fronts_are_repeatable():
         scene.reset_scene()
         fronts.build()
         return {n: sorted(tuple(round(c, 6) for c in v.co) for v in bpy.data.objects[n].data.vertices)
-                for n in ("ornate_bargeboard_knots", "lattice_window_window_bars", "round_window_west_window_frame")}
+                for n in ("round_window_left_window_frame", "lattice_window_window_bars",
+                          "lattice_window_window_bricks")}
     assert snapshot() == snapshot()
+
+
+def test_the_full_rows_spare_fronts_still_build():
+    # Kept for more hobbit holes later: each spare front's builder still makes a complete front.
+    for name in ("round_window_west", "round_window_rack", "ornate"):
+        scene.reset_scene()
+        objs = fronts.BUILDERS[name]()
+        assert len(objs) >= 9 and all(o.name.startswith(name + "_") for o in objs), name

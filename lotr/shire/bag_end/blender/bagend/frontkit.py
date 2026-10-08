@@ -13,7 +13,7 @@ from mathutils import Matrix
 
 from . import layout as L, parts as P
 
-POST = 0.12        # timber posts, square
+POST = L.POST      # timber posts, square
 EAVE_OUT = 0.32    # how far an eave hood projects
 
 

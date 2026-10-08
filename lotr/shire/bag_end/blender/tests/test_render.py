@@ -10,7 +10,7 @@ CUBE = ([(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1), (1, 0, 1), (1, 1
 def test_every_reference_camera_is_created_with_its_lens():
     scene.reset_scene()
     render.setup()
-    assert {"ref01", "ref02", "ref03", "ref05", "ref08", "ref09", "ref10"} <= set(render.CAMERAS)
+    assert {"ref01", "ref02", "ref03", "ref04", "ref05"} <= set(render.CAMERAS)
     for name, (_, _, lens) in render.CAMERAS.items():
         cam = bpy.data.objects[name]
         assert cam.type == "CAMERA" and cam.data.lens == lens
