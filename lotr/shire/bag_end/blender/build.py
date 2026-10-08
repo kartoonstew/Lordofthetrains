@@ -7,7 +7,7 @@ from pathlib import Path
 
 import bpy
 
-from bagend import blockout, doorfront, garden, hill, render, scene
+from bagend import doorfront, fronts, garden, hill, render, scene
 
 OUT = Path(__file__).resolve().parents[1]
 
@@ -15,8 +15,8 @@ OUT = Path(__file__).resolve().parents[1]
 def build_scene():
     scene.reset_scene()
     hill.build()
-    blockout.build(exclude=("door",))
     doorfront.build()
+    fronts.build()
     garden.build()
     render.setup()
 

@@ -10,9 +10,6 @@ from . import parts, scene
 # Object name prefix -> base colour (linear RGB). First match wins.
 COLOURS = (
     ("hill", parts.TURF),
-    ("front_", parts.PLASTER),
-    ("eave_", (0.20, 0.13, 0.08)),
-    ("window_", (0.04, 0.05, 0.07)),
     ("step_", parts.STONE),
     ("wall_", parts.STONE),
     ("chimney", parts.BRICK),
@@ -22,8 +19,8 @@ COLOURS = (
 TIMBER = (0.33, 0.23, 0.14)
 
 # Cameras matched to the reference photos by eye: (location, look-at, focal length in mm).
-# ref01, ref02 and ref03 look at the door front, which is true size, so they line up with their
-# photos. The hill around the fronts is compressed (layout.py), so ref09 and ref10 only frame
+# ref01, ref02, ref03, ref05 and ref08 look at fronts, which are true size, so they line up with
+# their photos. The hill around the fronts is compressed (layout.py), so ref09 and ref10 only frame
 # the same view of it.
 CAMERAS = {
     "ref09": ((12.0, -52.0, 3.0), (-5.0, 0.0, 2.6), 90),
@@ -31,6 +28,8 @@ CAMERAS = {
     "ref03": ((2.45, -7.3, 0.1), (0.1, 1.7, 3.8), 24),
     "ref01": ((0.15, -6.0, 1.35), (0.15, 0.0, 1.25), 38),
     "ref02": ((-1.4, -3.6, 0.55), (0.05, 0.0, 1.25), 30),
+    "ref05": ((2.9, -5.4, 0.7), (1.0, 0.0, 1.1), 24),
+    "ref08": ((-10.2, -4.2, 0.35), (-7.4, 0.0, 2.1), 24),
     "overview": ((-24.0, -30.0, 18.0), (-7.0, 1.0, 0.5), 40),
 }
 

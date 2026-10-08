@@ -23,7 +23,8 @@ def test_build_twice_gives_one_of_each():
     build.build_scene()
     names = [o.name for o in bpy.data.objects]
     assert "hill" in names and "doorfront_door_boards" in names and "oak_crown" in names
-    assert "front_door" not in names
+    assert "ornate_bargeboard" in names and "lattice_window_window_bars" in names
+    assert not [n for n in names if n.startswith(("front_", "eave_", "window_"))]       # no block-outs left
     dupes = [n for n in names if re.search(r"\.\d{3}$", n)]
     assert not dupes, dupes
     assert not [m.name for m in bpy.data.meshes if m.name.startswith("cutter")]
