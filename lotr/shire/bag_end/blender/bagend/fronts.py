@@ -15,7 +15,7 @@ import math
 import bmesh
 from mathutils import Matrix
 
-from . import frontkit as K, layout as L, parts as P
+from . import frontkit as K, layout as L, parts as P, wood as W
 
 D = L.D
 
@@ -85,10 +85,11 @@ def ornate_front(seed=17):
     b.obj("window_bars", bars, "iron", bevel=0.004)
     frame = bmesh.new()
     for s in (-1, 1):
-        P.timber(frame, (s * (w_half + 0.045), -0.01, (w_z0 + spring) / 2), (0.09, 0.14, spring - w_z0),
+        W.timber(frame, (s * (w_half + 0.045), -0.01, (w_z0 + spring) / 2), (0.09, 0.14, spring - w_z0),
                  seed=seed + s)
-    P.arc_block(frame, 0.0, spring, w_half, w_half + 0.09, 0.0, math.pi, -0.08, 0.06, seg=20)
-    P.timber(frame, (0.0, -0.05, w_z0 - 0.06), (2 * w_half + 0.3, 0.2, 0.12), seed=seed + 3)
+    W.arc_timber(frame, 0.0, spring, w_half, w_half + 0.09, 0.0, math.pi, -0.08, 0.06, seed + 4,
+                 ends=(False, False))
+    W.timber(frame, (0.0, -0.05, w_z0 - 0.06), (2 * w_half + 0.3, 0.2, 0.12), seed=seed + 3)
     b.obj("window_frame", frame, "timber", bevel=0.008)
 
     # half-timbering: posts either side of the window, a timber arch over it, braces up to the eave
@@ -96,18 +97,19 @@ def ornate_front(seed=17):
     post_u = w_half + 0.32
     outer_top = top(arch - 0.01)     # the eave falls steeply here: stop at its lower, outer edge
     for s in (-1, 1):
-        P.timber(ht, (s * post_u, -0.02, spring / 2), (0.14, 0.12, spring), seed=seed + 10 * s)
-        P.timber(ht, (s * (arch - 0.08), -0.02, outer_top / 2), (0.14, 0.12, outer_top), seed=seed + 20 * s)
+        W.timber(ht, (s * post_u, -0.02, spring / 2), (0.14, 0.12, spring), seed=seed + 10 * s)
+        W.timber(ht, (s * (arch - 0.08), -0.02, outer_top / 2), (0.14, 0.12, outer_top), seed=seed + 20 * s)
         z0, z1 = spring + 0.2, outer_top - 0.1                 # from the inner post up to the outer post top
         dx = s * (arch - 0.08 - post_u)
         ang = math.atan2(z1 - z0, dx)
-        P.timber(ht, (s * (post_u + arch - 0.08) / 2, -0.02, (z0 + z1) / 2), (math.hypot(dx, z1 - z0), 0.1, 0.11),
+        W.timber(ht, (s * (post_u + arch - 0.08) / 2, -0.02, (z0 + z1) / 2), (math.hypot(dx, z1 - z0), 0.1, 0.11),
                  Matrix.Rotation(-ang, 4, "Y"), seed=seed + 30 * s)
-    P.arc_block(ht, 0.0, spring, post_u - 0.07, post_u + 0.07, 0.0, math.pi, -0.06, 0.06, seg=24)
+    W.arc_timber(ht, 0.0, spring, post_u - 0.07, post_u + 0.07, 0.0, math.pi, -0.06, 0.06, seed + 6,
+                 hidden=(2,), ends=(False, False))
     for u in (-0.55, 0.0, 0.55):                                  # studs from the arch up to the bargeboard
         z0 = spring + math.sqrt((post_u + 0.07) ** 2 - u * u) - 0.03
         z1 = top(u) - 0.10                                    # up into the header band
-        P.timber(ht, (u, -0.02, (z0 + z1) / 2), (0.12, 0.11, z1 - z0), seed=seed + 40 + round(u * 10))
+        W.timber(ht, (u, -0.02, (z0 + z1) / 2), (0.12, 0.11, z1 - z0), seed=seed + 40 + round(u * 10))
     b.obj("timbering", ht, "timber", bevel=0.01)
 
     # the carved bargeboard: an even-width band along the arched eave, landing on a corbel at each

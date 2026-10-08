@@ -11,7 +11,7 @@ import bmesh
 import bpy
 from mathutils import Matrix
 
-from . import layout as L, parts as P
+from . import layout as L, parts as P, wood as W
 
 POST = L.POST      # timber posts, square
 EAVE_OUT = 0.32    # how far an eave hood projects
@@ -93,15 +93,16 @@ def eave(b, panels, posts=True, label="", out=EAVE_OUT):
     top = eave_line(f)
     us = samples(-half, half)
     bm = bmesh.new()
-    P.header_band(bm, us, top, panels=panels, seed=b.seed)
+    W.header_band(bm, us, top, panels=panels, seed=b.seed)
     if posts:
         for s in (-1, 1):
             u = s * (half - POST / 2)
-            P.timber(bm, (u, 0.0, (top(u) - 0.2) / 2), (POST, POST, top(u) + 0.2), seed=b.seed + 5 * s)
-            P.knee_brace(bm, u - s * 0.02, top(u) - 0.06, seed=b.seed + 7 * s, depth=out - 0.06)
+            W.timber(bm, (u, 0.0, (top(u) - 0.2) / 2), (POST, POST, top(u) + 0.2), seed=b.seed + 5 * s,
+                     hidden=(2,))                                  # its back is in the wall
+            W.knee_brace(bm, u - s * 0.02, top(u) - 0.06, seed=b.seed + 7 * s, depth=out - 0.06)
     b.obj(f"timber{label}", bm, "timber", bevel=0.012)
     fascia, soffit = bmesh.new(), bmesh.new()
-    P.eave_hood(fascia, soffit, us, top, out, b.rng, b.seed)
+    W.eave_hood(fascia, soffit, us, top, out, b.rng, b.seed)
     b.obj(f"fascia{label}", fascia, "timber", bevel=0.008)
     b.obj(f"soffit{label}", soffit, "timber", bevel=0.006)
     bm = bmesh.new()
@@ -115,7 +116,7 @@ def round_window(b, label, cu, cz, r_open, frame=0.07, glazing="wheel", frame_ma
     over it and a brick sill under it. Returns the cutter for its opening (cut to 0.09 deep)."""
     r = r_open - frame
     bm = bmesh.new()
-    P.segmented_ring(bm, cu, cz, r, r_open, -0.03, 0.12, max(6, round(2 * math.pi * r_open / 0.3)),
+    W.segmented_ring(bm, cu, cz, r, r_open, -0.03, 0.12, max(6, round(2 * math.pi * r_open / 0.3)),
                      b.rng, b.seed + round(cu * 10))
     b.obj(f"{label}_frame", bm, frame_mat, bevel=0.006)
     glass, bars = bmesh.new(), bmesh.new()

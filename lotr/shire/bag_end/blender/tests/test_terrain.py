@@ -77,11 +77,14 @@ def test_door_front_is_dug_out_to_its_recess_depth():
 
 
 def test_terrace_path_stays_level_along_the_row():
-    # A dug-out's floor meeting the level path is no crease: blending must not sink the path.
+    # A dug-out's floor meeting the level path is no crease: blending must not sink the path. Only the
+    # bank the stone steps are set into dips from it, and that within 2.05 m of the steps' centreline
+    # (0.72 m of turf level with the tread ends, then at most 0.9 m down at L.BANK, plus its shoulders).
     for y in (-3.4, -2.5, -1.7):
         for x in np.linspace(L.MODEL_X[0] + L.EDGE_FALL, L.MODEL_X[1] - L.EDGE_FALL, 200):
-            if min(np.hypot(x - sx, y - sy) for sx, sy, _ in L.STEPS) < 1.2:
-                continue                                   # the steps are cut lower
+            s, d = terrain.path_frame(np.array([x]), np.array([y]))
+            if s[0] > -0.3 and abs(d[0]) < 2.05:
+                continue
             assert abs(g(x, y) - L.TERRACE_Z) < 0.01, (round(x, 2), y, g(x, y))
 
 
@@ -118,3 +121,30 @@ def test_no_step_is_buried():
 def test_lawn_falls_from_the_wall_to_the_lane():
     assert abs(g(-3.0, L.WALL_Y - 0.01) - L.LAWN_Z) < 0.05
     assert abs(g(-3.0, L.LANE_Y) - L.LANE_Z) < 0.05
+
+
+def test_the_bank_meets_the_tread_ends_with_no_trench():
+    # refs/04, 05: the treads are set into an open grassy bank. At each tread's ends the turf is at
+    # about tread height (between the tread's top and the next tread's), and from there outward, up to
+    # the dry-stone wall, it climbs steadily to the terrace or falls to the lawn: no ditch beside the
+    # steps, and no slope steeper than 50 degrees.
+    pts = terrain.path_line()
+    zs = [z for _, _, z in L.STEPS]
+    for k, (x, y, z) in enumerate(L.STEPS):
+        u = pts[k + 1] - pts[k]
+        v = np.array([-u[1], u[0]]) / np.linalg.norm(u)
+        below = zs[k + 1] if k + 1 < len(zs) else z - 0.1
+        profiles = 0
+        for side in (-1, 1):
+            end = g(x + side * v[0] * 0.68, y + side * v[1] * 0.68)
+            assert below - 0.03 <= end <= z, (k, side, end, z)
+            offs = [o for o in np.arange(0.68, 2.4, 0.05)        # up to the wall, whose drop isn't the bank
+                    if (y + side * v[1] * o - L.WALL_Y) * (y - L.WALL_Y) > 0 and abs(y + side * v[1] * o - L.WALL_Y) > 0.1]
+            if len(offs) < 4:
+                continue                                      # the tread in the wall's gap
+            prof = np.array([g(x + side * v[0] * o, y + side * v[1] * o) for o in offs])
+            step = np.diff(prof)
+            assert np.all(step >= -0.01) or np.all(step <= 0.01), (k, side, np.round(prof, 2))
+            assert np.abs(step).max() / 0.05 <= np.tan(np.radians(50)), (k, side, np.abs(step).max())
+            profiles += 1
+        assert profiles >= 1 or abs(y - L.WALL_Y) < 0.3, k

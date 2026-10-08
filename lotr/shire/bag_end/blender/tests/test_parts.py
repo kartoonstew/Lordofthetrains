@@ -29,23 +29,8 @@ def test_materials_are_made_once_per_scene():
     assert nodes == {name: len(m.node_tree.nodes) for name, m in second.items()}
 
 
-def test_wobble_is_repeatable_per_seed_and_small():
-    def timber(seed):
-        bm = bmesh.new()
-        P.timber(bm, (0.0, 0.0, 0.0), (0.12, 0.12, 2.0), seed=seed)
-        out = [tuple(v.co) for v in bm.verts]
-        bm.free()
-        return out
-    a = timber(3)
-    assert a == timber(3) and a != timber(4)
-    assert all(abs(x) <= 0.06 + 0.016 and abs(z) <= 1.0 + 0.016 for x, _, z in a)
-
-
-def test_timber_and_plaster_come_out_as_closed_solids():
+def test_plaster_comes_out_as_a_closed_solid():
     scene.reset_scene()
-    bm = bmesh.new()
-    P.timber(bm, (0.0, 0.0, 1.0), (0.12, 0.12, 2.0), seed=1)
-    assert is_closed(P.to_object("post", bm, None, "test", bevel=0.012))
     bm = bmesh.new()
     P.plaster_slab(bm, -0.5, 0.5, 0.0, lambda u: 1.0 + 0.2 * math.cos(3 * u), 0.8, seed=2)
     assert is_closed(P.to_object("slab", bm, None, "test"))
@@ -62,13 +47,6 @@ def test_bevel_rounds_the_edges_of_solids_built_face_by_face():
         assert is_closed(obj), bevel
         counts.append(len(obj.data.vertices))
     assert counts[1] > counts[0], counts
-
-
-def test_knee_brace_is_a_closed_solid_even_when_bevelled():
-    scene.reset_scene()
-    bm = bmesh.new()
-    P.knee_brace(bm, 0.0, 2.0, seed=3)
-    assert is_closed(P.to_object("brace", bm, None, "test", bevel=0.012))
 
 
 def test_plaster_meets_its_eave_line_and_bulges_only_outward():
@@ -98,17 +76,6 @@ def test_arch_bricks_sit_between_the_circles_and_thicken_at_the_crown():
     bm.free()
 
 
-def test_door_boards_stay_inside_the_doorway():
-    r, cz, front = 0.78, 0.84, 0.22
-    bm = bmesh.new()
-    P.plank_door(bm, cz, r, front, 0.06, random.Random(1), 7)
-    assert len(bm.verts) > 0
-    for v in bm.verts:
-        assert math.hypot(v.co.x, v.co.z - cz) <= r + 0.006, tuple(v.co)
-        assert front - 0.02 <= v.co.y <= front + 0.06 + 1e-6, tuple(v.co)
-    bm.free()
-
-
 def test_glazing_bars_stay_inside_their_pane():
     cu, cz, r, v = 0.3, 1.2, 0.4, 0.06
     for bars in (P.lattice_bars, P.wheel_bars):
@@ -134,16 +101,6 @@ def test_bake_cuts_makes_a_real_hole_and_removes_the_cutters():
     through, *_ = bpy.context.scene.ray_cast(dg, Vector((0.0, -1.0, 1.0)), Vector((0.0, 1.0, 0.0)))
     beside, *_ = bpy.context.scene.ray_cast(dg, Vector((0.6, -1.0, 1.0)), Vector((0.0, 1.0, 0.0)))
     assert not through and beside
-
-
-def test_flagstone_is_a_closed_slab_with_its_top_at_the_tread():
-    scene.reset_scene()
-    bm = bmesh.new()
-    P.flagstone(bm, (1.0, 2.0, 0.5), 1.05, 0.44, 0.1, 0.3, random.Random(2), 5)
-    obj = P.to_object("slab", bm, None, "test", bevel=0.012)
-    assert is_closed(obj)
-    zs = [v.co.z for v in obj.data.vertices]
-    assert 0.49 <= max(zs) <= 0.5 + 1e-6 and abs(min(zs) - 0.4) < 0.02, (min(zs), max(zs))
 
 
 def test_rough_materials_vary_across_a_surface():

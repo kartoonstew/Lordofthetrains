@@ -1,8 +1,9 @@
 """Rustic building parts for the Bag End fronts.
 
 Everything is built in a front-local frame: u along the facade, v into the wall (the viewer is
-at -v), z up. Irregularity is real geometry: jittered corners, noise-bent timber, bowed boards,
-wavy plaster, so the printed part looks hand-built rather than machined.
+at -v), z up. Irregularity is real geometry: jittered corners, wavy plaster, worn stone, so the
+printed part looks hand-built rather than machined. The timber (posts, beams, boards, rings, the
+door) is built by wood.py.
 """
 import math
 import random
@@ -87,7 +88,7 @@ def materials():
         "brass": mat("brass", (0.80, 0.58, 0.20), rough=0.3, metal=1.0),
         "glass": mat("glass", (0.02, 0.03, 0.04), rough=0.05),
         "green_paint": mat("green_paint", (0.015, 0.14, 0.07), rough=0.55, bump=0.1),
-        "stone": mat("stone", STONE, vary=0.2, bump=0.4, mottle=((0.05, 0.07, 0.025), 4.0)),
+        "stone": mat("stone", STONE, vary=0.25, bump=0.4, mottle=((0.075, 0.072, 0.066), 4.0)),   # bare: no green
         "terracotta": mat("terracotta", (0.40, 0.14, 0.06), rough=0.8),
         "turf": mat("turf", TURF, rough=0.95, bump=0.4, mottle=((0.075, 0.13, 0.025), 1.2)),
         "soil": mat("soil", (0.055, 0.035, 0.022), rough=1.0, bump=0.5, mottle=((0.03, 0.02, 0.012), 6.0)),
@@ -102,6 +103,9 @@ def to_object(name, bm, mat, coll, matrix=None, bevel=0.0, segments=2):
     """Finish a bmesh into an object: bevel its sharp edges, fix normals, link it."""
     if bevel:
         bevel_sharp(bm, bevel, segments)
+    wood = bm.verts.layers.int.get("wood")
+    if wood is not None:
+        bm.verts.layers.int.remove(wood)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(name)
     bm.to_mesh(mesh)
@@ -116,9 +120,12 @@ def to_object(name, bm, mat, coll, matrix=None, bevel=0.0, segments=2):
 
 
 def bevel_sharp(bm, offset, segments=2, angle=0.6):
-    """Round off only the real edges (faces meeting at more than ~35 degrees)."""
+    """Round off only the real edges (faces meeting at more than ~35 degrees). Wood from wood.py
+    (vertex layer "wood") is left alone: its corners are already worn, and its grooves are not edges."""
     bm.normal_update()      # faces made with bm.faces.new have no normals yet, so no angle either
-    edges = [e for e in bm.edges if e.is_manifold and e.calc_face_angle(0.0) > angle]
+    wood = bm.verts.layers.int.get("wood")
+    edges = [e for e in bm.edges if e.is_manifold and e.calc_face_angle(0.0) > angle
+             and not (wood is not None and e.verts[0][wood] and e.verts[1][wood])]
     if edges:
         bmesh.ops.bevel(bm, geom=edges, offset=offset, segments=segments, profile=0.5,
                         affect="EDGES", clamp_overlap=True)
@@ -150,17 +157,6 @@ def hexa(bm, front, back):
 def box(bm, centre, size, rot=None):
     m = Matrix.Translation(centre) @ (rot or Matrix.Identity(4)) @ Matrix.Diagonal((*size, 1.0))
     return bmesh.ops.create_cube(bm, size=1.0, matrix=m)["verts"]
-
-
-def timber(bm, centre, size, rot=None, amp=0.008, seed=0, cuts=6):
-    """A box subdivided along its length and gently bent, for posts, beams and planks."""
-    def build(b):
-        vs = box(b, centre, size, rot)
-        longest = max(size)
-        long_edges = list({e for v in vs for e in v.link_edges
-                           if (e.verts[0].co - e.verts[1].co).length > 0.6 * longest})
-        bmesh.ops.subdivide_edges(b, edges=long_edges, cuts=cuts, use_grid_fill=True)
-    wobble(new_verts(bm, build), amp, 2.5, seed)
 
 
 def extrude(bm, outline, v0, v1):
@@ -295,49 +291,6 @@ def brick_row(bm, cu, cz, count, width, height, proud, rng, gap=0.012):
         u += w + gap
 
 
-def plank_door(bm, cz, r, front_v, depth, rng, seed):
-    """Round planked door: boards of uneven width, slightly bowed and misaligned."""
-    u = -r
-    k = 0
-    while u < r - 0.02:
-        w = rng.uniform(0.105, 0.15)
-        gap = rng.uniform(0.008, 0.016)
-        u0, u1 = u + gap / 2, min(r - 0.002, u + w - gap / 2)
-        u += w
-        k += 1
-        if u1 - u0 < 0.02:
-            continue
-        lean = rng.uniform(-0.006, 0.004)
-        bow = rng.uniform(-0.007, 0.007)
-
-        def zr(uu):
-            return math.sqrt(max(r * r - uu * uu, 0.0))
-        cols, rows = 3, 14
-        fr, bk = [], []
-        for j in range(rows + 1):
-            t = j / rows
-            rf, rb = [], []
-            for i in range(cols + 1):
-                uu = u0 + (u1 - u0) * i / cols
-                z = cz - zr(uu) + 2 * zr(uu) * t
-                v = front_v + lean + bow * math.sin(math.pi * t)
-                rf.append(bm.verts.new((uu, v, z)))
-                rb.append(bm.verts.new((uu, front_v + depth, z)))
-            fr.append(rf)
-            bk.append(rb)
-        for j in range(rows):
-            for i in range(cols):
-                bm.faces.new((fr[j][i], fr[j][i + 1], fr[j + 1][i + 1], fr[j + 1][i]))
-                bm.faces.new((bk[j][i], bk[j + 1][i], bk[j + 1][i + 1], bk[j][i + 1]))
-        for i in range(cols):
-            bm.faces.new((fr[0][i + 1], fr[0][i], bk[0][i], bk[0][i + 1]))
-            bm.faces.new((fr[rows][i], fr[rows][i + 1], bk[rows][i + 1], bk[rows][i]))
-        for j in range(rows):
-            bm.faces.new((fr[j][0], fr[j + 1][0], bk[j + 1][0], bk[j][0]))
-            bm.faces.new((fr[j + 1][cols], fr[j][cols], bk[j][cols], bk[j + 1][cols]))
-        wobble([v for row in fr for v in row], 0.003, 6.0, seed + k)
-
-
 def door_nails(bm, cz, r, front_v, rng):
     """Rows of nail heads where the hidden battens cross the boards."""
     for zrow in (-0.62, -0.32, 0.0, 0.32, 0.62):
@@ -349,72 +302,6 @@ def door_nails(bm, cz, r, front_v, rng):
                                       matrix=Matrix.Translation((uu + rng.uniform(-0.01, 0.01), front_v,
                                                                  z + rng.uniform(-0.008, 0.008))))
             uu += 0.127
-
-
-def segmented_ring(bm, cu, cz, r_in, r_out, v0, v1, segments, rng, seed, gap=0.012):
-    """A round frame built from curved timber segments with small joints between them."""
-    for k in range(segments):
-        a0 = 2 * math.pi * k / segments + gap / r_out
-        a1 = 2 * math.pi * (k + 1) / segments - gap / r_out
-        dr = rng.uniform(-0.008, 0.008)
-        vs = arc_block(bm, cu, cz, r_in, r_out + dr, a0, a1, v0 + rng.uniform(-0.004, 0.004), v1, seg=10)
-        wobble(vs, 0.004, 4.0, seed + k)
-
-
-def header_band(bm, us, eave, panels, seed, h_min=0.07, h_dip=0.30, proud=0.035):
-    """Timber under the eave whose lower edge arches up over each panel and dips at the posts."""
-    top, bot = [], []
-    for u in us:
-        e = eave(u) - 0.05
-        pc, ph = next((c, h) for c, h in panels if abs(u - c) <= h + 1e-9)
-        t = (u - pc) / ph
-        top.append((u, e))
-        bot.append((u, e - h_min - h_dip * t * t))
-    vs = extrude(bm, top + list(reversed(bot)), -proud, 0.1)
-    wobble(vs, 0.007, 3.0, seed)
-
-
-def eave_hood(bm_fascia, bm_soffit, us, eave, out, rng, seed):
-    """Curved fascia board at the front edge, and uneven soffit boards behind it."""
-    top = [(u, eave(u) + 0.01) for u in us]
-    low = [(u, eave(u) - 0.14) for u in reversed(us)]
-    wobble(extrude(bm_fascia, top + low, -out, -out + 0.06), 0.008, 2.5, seed)
-    u, u1 = us[0], us[-1]
-    while u < u1 - 0.02:
-        w = rng.uniform(0.085, 0.12)
-        gap = rng.uniform(0.008, 0.016)
-        a, b = u + gap / 2, min(u1, u + w - gap / 2)
-        u += w
-        if b - a < 0.02:
-            continue
-        drop = rng.uniform(-0.006, 0.004)            # each board follows the eave across its width,
-        ea, eb = eave(a) + drop, eave(b) + drop      # so on a steep arch the boards stay edge to edge
-        vs = extrude(bm_soffit, [(a, ea), (b, eb), (b, eb - 0.07), (a, ea - 0.07)], -out + 0.06, 0.05)
-        wobble(vs, 0.004, 5.0, seed + u)
-
-
-def knee_brace(bm, u, z_top, seed, depth=0.26, rise=0.42, width=0.075, seg=8, grip=0.03):
-    """Curved timber bracket filling the corner between a post and the eave above it.
-
-    Its underside is a concave quarter-ellipse from the post out to the eave's front edge; its back
-    and top edges sink `grip` into the post and the soffit, so it is one closed, attached solid.
-    """
-    v0, v1 = -0.06, -0.06 - depth
-    z0 = z_top - rise
-    ts = [math.pi / 2 * i / seg for i in range(seg + 1)]
-    outline = [(v1 + depth * math.cos(t), z0 + rise * math.sin(t)) for t in ts]
-    outline += [(v1, z_top + grip), (v0 + grip, z_top + grip), (v0 + grip, z0)]
-
-    def build(b):
-        left = [b.verts.new((u - width / 2, v, z)) for v, z in outline]
-        right = [b.verts.new((u + width / 2, v, z)) for v, z in outline]
-        b.faces.new(left)
-        b.faces.new(list(reversed(right)))
-        n = len(outline)
-        for i in range(n):
-            j = (i + 1) % n
-            b.faces.new((left[i], left[j], right[j], right[i]))
-    wobble(new_verts(bm, build), 0.005, 4.0, seed)
 
 
 def lantern(bm_iron, bm_glass, u, z_hang, v=-0.13):
@@ -440,34 +327,6 @@ def leaded_glass(bm_glass, bm_came, cu, cz, r, v):
         ang = math.radians(a) + math.pi / 4
         box(bm_came, (cu + 0.42 * r * math.cos(ang), v, cz + 0.42 * r * math.sin(ang)),
             (0.012, 0.008, 0.8 * r), Matrix.Rotation(ang + math.pi / 2, 4, "Y"))
-
-
-def rough_stone(bm, centre, size, rng, seed, amp=0.012, rot=None, cuts=4):
-    """A worn stone or slab: a subdivided block with lumpy faces."""
-    def build(b):
-        vs = box(b, centre, size, rot)
-        bmesh.ops.subdivide_edges(b, edges=list({e for v in vs for e in v.link_edges}), cuts=cuts,
-                                  use_grid_fill=True)
-    wobble(new_verts(bm, build), amp, 4.0, seed)
-
-
-def flagstone(bm, centre, length, width, thick, yaw, rng, seed):
-    """A worn slate slab: an irregular rounded outline, its top at centre's height."""
-    cx, cy, top = centre
-    pts = []
-    for k in range(10):
-        t = 2 * math.pi * k / 10
-        r = 1.0 + rng.uniform(-0.12, 0.06)
-        u, v = 0.5 * length * r * math.cos(t), 0.5 * width * r * math.sin(t)
-        u, v = math.copysign(abs(u) ** 0.8 * (0.5 * length) ** 0.2, u), v      # squarer ends, like split slate
-        pts.append((cx + u * math.cos(yaw) - v * math.sin(yaw), cy + u * math.sin(yaw) + v * math.cos(yaw)))
-    bot = [bm.verts.new((x, y, top - thick)) for x, y in pts]
-    tops = [bm.verts.new((x, y, top + rng.uniform(-0.006, 0.0))) for x, y in pts]
-    bm.faces.new(list(reversed(bot)))
-    bm.faces.new(tops)
-    for i in range(10):
-        j = (i + 1) % 10
-        bm.faces.new((bot[i], bot[j], tops[j], tops[i]))
 
 
 def pot(name, mat, coll, matrix):

@@ -105,17 +105,74 @@ def edge(x, y):
             * ramp(L.BACK_Y - y, 0.0, L.EDGE_FALL))
 
 
-def steps_cut(x, y):
-    """Lower the ground along the flagstone steps so every slab sits on it."""
-    pts = list(L.STEPS) + [(L.GATE[0], L.GATE[1], L.STEPS[-1][2] - 0.1)]
-    out = np.full(np.shape(x), np.inf)
-    for (x0, y0, z0), (x1, y1, z1) in zip(pts[:-1], pts[1:]):
-        sx, sy = x1 - x0, y1 - y0
-        t = np.clip(((x - x0) * sx + (y - y0) * sy) / (sx * sx + sy * sy), 0.0, 1.0)
-        d = np.hypot(x - (x0 + t * sx), y - (y0 + t * sy))
-        z = z0 + t * (z1 - z0) - 0.03 + np.maximum(0.0, d - 0.45) * 3.0
-        out = np.minimum(out, z)
-    return out
+def path_line():
+    """The path's centreline in plan: through the middle of every tread, on to the gate."""
+    return np.array([(x, y) for x, y, _ in L.STEPS] + [L.GATE])
+
+
+def path_frame(x, y):
+    """Where (x, y) is relative to the path: chainage s along its centreline from the top tread, and
+    signed offset d from it (positive to the right going down). Before the top tread s is negative:
+    the distance behind it along the first stretch's line, and d the offset from that line."""
+    pts = path_line()
+    seg = np.diff(pts, axis=0)
+    length = np.hypot(seg[:, 0], seg[:, 1])
+    start = np.concatenate([[0.0], np.cumsum(length)])
+    best = np.full(np.shape(x), np.inf)
+    s = np.zeros(np.shape(x))
+    d = np.zeros(np.shape(x))
+    for k, ((x0, y0), (sx, sy), n) in enumerate(zip(pts[:-1], seg, length)):
+        raw = ((x - x0) * sx + (y - y0) * sy) / (n * n)
+        dist = np.hypot(x - (x0 + np.clip(raw, 0.0, 1.0) * sx), y - (y0 + np.clip(raw, 0.0, 1.0) * sy))
+        closer = dist < best
+        best = np.where(closer, dist, best)
+        t = np.minimum(raw, 1.0) if k == 0 else np.clip(raw, 0.0, 1.0)     # the first runs on back
+        px, py = x - (x0 + t * sx), y - (y0 + t * sy)
+        s = np.where(closer, start[k] + t * n, s)
+        d = np.where(closer, -np.sign(sx * py - sy * px) * np.hypot(px, py), d)
+    return s, d
+
+
+def tread_chainage():
+    """Chainage of every tread's middle and of its front edge (where the next tread's going starts)."""
+    pts = path_line()
+    start = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(pts, axis=0).T))])
+    mid = start[:-1]
+    front = mid + 0.5 * np.diff(start)
+    return mid, front
+
+
+TREAD_ENDS = 0.72     # the bank's turf runs level with the path this far either side of its centre
+
+
+def bank_level(s):
+    """The turf's height along the path at chainage s, where it meets the tread ends: a steady slope
+    from the back of each tread's going (level with it) down to its front (level with the next), so
+    the treads are set into the bank, their ends showing more of their thickness toward the front."""
+    mid, front = tread_chainage()
+    zs = [z for _, _, z in L.STEPS]
+    ss = [mid[0] - 0.2] + list(front[:-1]) + [front[-1] + 0.05]
+    hs = [zs[0]] + zs[1:] + [zs[-1] - 0.06]
+    return np.interp(s, ss, np.array(hs) - 0.015)
+
+
+def path_bank(x, y, z):
+    """The open grassy bank the path is set into (refs/04, 05): beside the treads the turf is at
+    bank_level, and beyond them it climbs to the terrace, or falls to the lawn, at the slope L.BANK
+    with rounded shoulders; past the last tread it eases back to the lawn before the gate."""
+    s, d = path_frame(x, y)
+    level = bank_level(s)
+    k = 0.12                                             # how far the shoulders are rounded
+    off = np.abs(d) - TREAD_ENDS
+    run = np.where(off > k, off, np.where(off < -k, 0.0, (off + k) ** 2 / (4 * k)))    # a soft start
+    rise = np.abs(z - level)
+    h = np.maximum(smin(run * L.BANK, rise, k), 0.0)    # a soft finish at the ground beyond
+    bank = level + np.sign(z - level) * h
+    _, front = tread_chainage()
+    gate = float(np.sum(np.hypot(*np.diff(path_line(), axis=0).T)))
+    f = 1.0 - ease((s - front[-1] - 0.05) / max(0.05, gate - front[-1] - 0.1))
+    f = f * (1.0 - ease(-s / 0.25))                     # and behind the top tread, back to the landing
+    return z + (bank - z) * f
 
 
 BLEND = 0.8   # how softly each dug-out meets the hill and the next one
@@ -130,6 +187,6 @@ def ground(x, y):
         # Round the crease where a dug-out cuts into the hill, but never below the front's floor:
         # where the dug floor meets level ground (the terrace path) there is no crease to round.
         z = np.maximum(smin(z, d, BLEND), np.minimum(np.minimum(z, d), f.floor))
-    z = np.minimum(z, steps_cut(x, y))
+    z = path_bank(x, y, z)
     z = L.EDGE_Z + (z - L.EDGE_Z) * edge(x, y)
     return np.maximum(z, L.EDGE_Z)

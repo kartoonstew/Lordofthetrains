@@ -118,21 +118,48 @@ EDGE_FALL = 1.0           # the ground falls to EDGE_Z over this distance from t
 CHIMNEYS = ((4.5, 2.4),)  # (x, y): the one behind the lattice window
 CHIMNEY_SIZE = 0.6
 CHIMNEY_HEIGHT = 1.1      # above the turf
+# The oak (oak.py), refs/01, 03, 09, 10: a separate print, plugged into a socket in the hill top
 OAK = (0.3, 2.5)          # trunk, almost over the door (refs/01, 03)
-OAK_CROWN = 4.3 * D       # crown diameter, refs/03
+OAK_CROWN = 5.6 * D       # crown spread: 8.8 m (101 mm at HO, 183 mm at O)
+OAK_HEIGHT = 3.9 * D      # crown top above the turf at the trunk: 6.1 m
+OAK_GIRTH = 0.72 * D      # trunk diameter above the root flare: 1.13 m
+OAK_FORK = 0.95 * D       # the main limbs leave the trunk about this high: 1.5 m
+OAK_TWIG = 0.07           # thinnest branch, diameter: 0.8 mm at HO
+OAK_PEG = (0.5, 0.6)      # peg under the trunk, diameter and depth below the turf: 5.7 x 6.9 mm at HO
+OAK_SEAT = 0.02           # the trunk base and roots sit this far into the turf
+OAK_LEAF_VOXEL = 0.045    # the foliage surface's grain (the remesh voxel)
 
-# Flagstone steps from the door landing down through the wall to the gate: (x, y, top of slab)
+# The stone path, refs/04, 05: a landing of slate flags in front of the door sill, then a dense run
+# of long, narrow slate treads set into an open grassy bank, winding down to the right through the
+# gap in the dry-stone wall to the gate. Each tread is stacked on the back of the one below it, so
+# the steps read as built (refs/05); where a rise is more than the slab is thick, a course of stacked
+# stone under its front edge makes up the riser. The bank's turf meets the tread ends at about tread
+# height. Each step: (x, y, top of its tread) at the middle of the tread's open part (its going).
+LANDING = ((-0.8, -1.12), (0.82, -0.38))   # (x0, y0), (x1, y1): between the door pots, up to the sill
 STEPS = (
-    (0.30, -1.3, 0.00),
-    (0.60, -2.1, -0.18),
-    (1.00, -2.9, -0.40),
-    (1.35, -3.7, -0.68),
-    (1.65, -4.4, -0.95),
+    (0.30, -1.30, 0.00),
+    (0.40, -1.58, -0.06),
+    (0.50, -1.86, -0.17),
+    (0.62, -2.15, -0.28),
+    (0.75, -2.41, -0.33),
+    (0.89, -2.67, -0.46),
+    (1.02, -2.94, -0.58),
+    (1.13, -3.20, -0.69),
+    (1.25, -3.47, -0.78),
+    (1.37, -3.74, -0.85),     # in the wall's gap, at the lawn; the rest are set in the lawn
+    (1.49, -4.03, -0.90),
+    (1.60, -4.28, -1.00),
+    (1.72, -4.54, -1.06),
 )
+STEP_LENGTH = (0.95, 1.3) # the slabs' length across the path (refs/04: long and narrow)
+TREAD = 0.09              # tread slab thickness (each varies about it)
+RISER_DEPTH = 0.12        # front to back of the stacked riser stones under a tread's front edge
+BANK = 0.85               # the bank's slope beside the path (40 degrees), rising to the terrace or
+                          # falling to the lawn: an open grassy bank, not a cutting
 GATE = (1.95, -4.95)
 # Soil beds for Ryan's flowers and shrubs, either side of the steps, refs/04, 05: (x, y, half-length,
 # half-width, direction in degrees)
-BEDS = ((-0.6, -2.3, 0.55, 0.3, 20.0), (2.0, -2.5, 0.5, 0.3, -30.0), (0.2, -4.5, 0.5, 0.3, 80.0))
+BEDS = ((-0.75, -2.3, 0.55, 0.3, 20.0), (2.25, -2.5, 0.5, 0.3, -30.0), (0.2, -4.5, 0.5, 0.3, 80.0))
 BENCH = (3.7, -4.4)
 BIRDHOUSE = (3.3, -1.7)
 LAMPS = ((-2.2, -1.5),)

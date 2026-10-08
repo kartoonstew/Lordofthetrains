@@ -6,11 +6,12 @@ placed where layout.py puts the door front. Its outline (width, facets, eave lin
 layout.py; the door, portholes and trim are sized here, in metres, from refs/01, 02 and 06.
 """
 import math
+import random
 
 import bmesh
 from mathutils import Matrix
 
-from . import frontkit as K, layout as L, parts as P
+from . import frontkit as K, layout as L, parts as P, stone, wood as W
 
 D = L.D
 F = L.front("door")
@@ -61,7 +62,7 @@ def build(seed=7):
     P.bake_cuts(wall, [b.disc_cutter(0.0, CZ, R_DOOR + RING - 0.002, -0.3, REVEAL + 0.08)])
 
     bm = bmesh.new()
-    P.segmented_ring(bm, 0.0, CZ, R_DOOR, R_DOOR + RING, -0.03, REVEAL + 0.01, 10, rng, seed)
+    W.segmented_ring(bm, 0.0, CZ, R_DOOR, R_DOOR + RING, -0.03, REVEAL + 0.01, 10, rng, seed)
     obj("door_ring", bm, "ring", bevel=0.008)
 
     bm = bmesh.new()
@@ -69,7 +70,7 @@ def build(seed=7):
     obj("door_arch", bm, "brick", bevel=0.007)
 
     bm = bmesh.new()
-    P.plank_door(bm, CZ, R_DOOR - 0.004, REVEAL, 0.06, rng, seed)
+    W.plank_door(bm, CZ, R_DOOR - 0.004, REVEAL, 0.06, rng, seed)
     obj("door_boards", bm, "door", bevel=0.006)
     bm = bmesh.new()
     P.disc(bm, 0.0, CZ, R_DOOR - 0.004, REVEAL + 0.03, REVEAL + 0.07, seg=96)
@@ -84,20 +85,20 @@ def build(seed=7):
                               matrix=Matrix.Translation((0.0, REVEAL - 0.09, CZ)))
     obj("door_knob", bm, "brass")
 
-    bm = bmesh.new()
-    P.rough_stone(bm, (0.0, -0.06, (SILL - 0.2) / 2), (1.3, 0.62, SILL + 0.2), rng, seed)
-    obj("door_sill", bm, "stone", bevel=0.015)
+    sill = stone.Pile()                              # a split slate sill, the door resting on its top
+    stone.slab(sill, (0.0, -0.06, SILL), (1.3, 0.62, SILL + 0.2), random.Random(seed + 500))
+    obj("door_sill", sill.into(bmesh.new()), "stone")
 
     bm = bmesh.new()
-    P.header_band(bm, us, eave_centre, panels=((-C / 2, C / 2), (C / 2, C / 2)), seed=seed)
+    W.header_band(bm, us, eave_centre, panels=((-C / 2, C / 2), (C / 2, C / 2)), seed=seed)
     for s in (-1, 1):
-        P.timber(bm, (s * C, 0.0, (0.95 + eave_centre(C)) / 2), (POST, POST, eave_centre(C) - 0.95),
-                 Matrix.Rotation(s * PHI / 2, 4, "Z"), seed=seed + s)
-        P.knee_brace(bm, s * C, eave_centre(C) - 0.06, seed=seed + 3 * s)
+        W.timber(bm, (s * C, 0.0, (0.95 + eave_centre(C)) / 2), (POST, POST, eave_centre(C) - 0.95),
+                 Matrix.Rotation(s * PHI / 2, 4, "Z"), seed=seed + s, hidden=(2,))
+        W.knee_brace(bm, s * C, eave_centre(C) - 0.06, seed=seed + 3 * s)
     obj("timber_centre", bm, "timber", bevel=0.012)
 
     fascia, soffit = bmesh.new(), bmesh.new()
-    P.eave_hood(fascia, soffit, us, eave_centre, EAVE_OUT, rng, seed)
+    W.eave_hood(fascia, soffit, us, eave_centre, EAVE_OUT, rng, seed)
     obj("fascia_centre", fascia, "timber", bevel=0.008)
     obj("soffit_centre", soffit, "timber", bevel=0.006)
 
@@ -122,7 +123,7 @@ def build(seed=7):
                            b.disc_cutter(0.0, CZ, R_DOOR + RING - 0.002, -0.3, REVEAL + 0.08)])
 
         bm = bmesh.new()
-        P.segmented_ring(bm, uc, P_CZ, P_GLASS, P_GLASS + P_FRAME, -0.025, 0.12, 6, rng, seed + s)
+        W.segmented_ring(bm, uc, P_CZ, P_GLASS, P_GLASS + P_FRAME, -0.025, 0.12, 6, rng, seed + s)
         obj(f"{label}_porthole_frame", bm, "green_paint", mat, bevel=0.006)
         glass, came = bmesh.new(), bmesh.new()
         P.leaded_glass(glass, came, uc, P_CZ, P_GLASS, 0.066)
@@ -135,13 +136,14 @@ def build(seed=7):
         obj(f"{label}_bricks", bm, "brick", mat, bevel=0.006)
 
         bm = bmesh.new()
-        P.header_band(bm, su, eave_side, panels=((S / 2, S / 2),), seed=seed + 20 * s)
-        P.timber(bm, (S, 0.0, (-0.2 + eave_side(S)) / 2), (POST, POST, eave_side(S) + 0.2), seed=seed + 30 * s)
-        P.knee_brace(bm, S - 0.02, eave_side(S) - 0.06, seed=seed + 40 * s)
+        W.header_band(bm, su, eave_side, panels=((S / 2, S / 2),), seed=seed + 20 * s)
+        W.timber(bm, (S, 0.0, (-0.2 + eave_side(S)) / 2), (POST, POST, eave_side(S) + 0.2), seed=seed + 30 * s,
+                 hidden=(2,))
+        W.knee_brace(bm, S - 0.02, eave_side(S) - 0.06, seed=seed + 40 * s)
         obj(f"{label}_timber", bm, "timber", mat, bevel=0.012)
 
         fascia, soffit = bmesh.new(), bmesh.new()
-        P.eave_hood(fascia, soffit, su, eave_side, EAVE_OUT, rng, seed + 50 * s)
+        W.eave_hood(fascia, soffit, su, eave_side, EAVE_OUT, rng, seed + 50 * s)
         obj(f"{label}_fascia", fascia, "timber", mat, bevel=0.008)
         obj(f"{label}_soffit", soffit, "timber", mat, bevel=0.006)
 

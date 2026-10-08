@@ -91,7 +91,8 @@ Under `blender/bagend/`:
 - `fronts.py` builds the other fronts, through a builder for every front, spare ones included.
 - `garden.py` has the steps, wall, beds and chimney.
 - `props.py` has the bench, gate, letterbox, lamp post, birdhouse and rack.
-- `oak.py` has the preview oak, never printed.
+- `oak.py` builds the oak, a separate print in its own `oak` collection that plugs into the hill
+  with a keyed peg; `treekit.py` has its helpers (seeded noise, tubes, mesh assembly).
 - `render.py` has the light, the cameras and the renders; `tools/side_by_side.py` makes the
   comparison sheets.
 - `scene.py` has the shared helpers.
