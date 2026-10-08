@@ -54,7 +54,9 @@ def eave_line(f):
     return lambda u: L.eave_top(f, u)
 
 
-def samples(u0, u1, n=60):
+def samples(u0, u1, step=0.03):
+    """Evenly spaced u from u0 to u1, about step apart, so curved eaves stay smooth."""
+    n = max(2, round((u1 - u0) / step))
     return [u0 + (u1 - u0) * i / n for i in range(n + 1)]
 
 

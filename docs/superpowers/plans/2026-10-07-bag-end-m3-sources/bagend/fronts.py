@@ -45,11 +45,10 @@ def lattice_front(seed=13):
     return b.objects()
 
 
-def arched_outline(half, z0, spring, n=24, grow=0.0):
+def arched_outline(half, z0, spring, n=24):
     """A round-headed opening: straight jambs from z0 to spring, a semicircle over them."""
-    r = half + grow
-    pts = [(-r, z0 - grow), (r, z0 - grow)]
-    pts += [(r * math.cos(math.pi * k / n), spring + r * math.sin(math.pi * k / n)) for k in range(n + 1)]
+    pts = [(-half, z0), (half, z0)]
+    pts += [(half * math.cos(math.pi * k / n), spring + half * math.sin(math.pi * k / n)) for k in range(n + 1)]
     return pts
 
 
@@ -60,13 +59,13 @@ def ornate_front(seed=17):
     top = K.eave_line(f)
     w_half, w_z0, w_height = ARCHED_WINDOW
     spring = w_z0 + w_height - w_half
-    cut = b.outline_cutter(arched_outline(w_half, w_z0, spring), -0.3, 0.10)
+    cut = b.outline_cutter(arched_outline(w_half, w_z0, spring), -0.3, 0.09)
     side = K.round_window(b, "side_window", *ROUND_WINDOWS["ornate"], glazing="wheel", frame_mat="timber")
     K.wall(b, [cut, side])
 
     # window: glass, leaded bars, timber frame and sill
     glass = bmesh.new()
-    P.extrude(glass, arched_outline(w_half, w_z0, spring), 0.07, 0.09)
+    P.extrude(glass, arched_outline(w_half, w_z0, spring), 0.071, 0.091)
     b.obj("window_glass", glass, "glass")
     bars = bmesh.new()
     for u in (-w_half / 2, 0.0, w_half / 2):
@@ -90,11 +89,11 @@ def ornate_front(seed=17):
     # half-timbering: posts either side of the window, a timber arch over it, braces up to the eave
     ht = bmesh.new()
     post_u = w_half + 0.32
+    outer_top = top(arch - 0.01)     # the eave falls steeply here: stop at its lower, outer edge
     for s in (-1, 1):
         P.timber(ht, (s * post_u, -0.02, spring / 2), (0.14, 0.12, spring), seed=seed + 10 * s)
-        P.timber(ht, (s * (arch - 0.08), -0.02, top(arch - 0.08) / 2), (0.14, 0.12, top(arch - 0.08)),
-                 seed=seed + 20 * s)
-        z0, z1 = spring + 0.2, top(arch - 0.08) - 0.1          # from the inner post up to the outer post top
+        P.timber(ht, (s * (arch - 0.08), -0.02, outer_top / 2), (0.14, 0.12, outer_top), seed=seed + 20 * s)
+        z0, z1 = spring + 0.2, outer_top - 0.1                 # from the inner post up to the outer post top
         dx = s * (arch - 0.08 - post_u)
         ang = math.atan2(z1 - z0, dx)
         P.timber(ht, (s * (post_u + arch - 0.08) / 2, -0.02, (z0 + z1) / 2), (math.hypot(dx, z1 - z0), 0.1, 0.11),
@@ -103,7 +102,7 @@ def ornate_front(seed=17):
     b.obj("timbering", ht, "timber", bevel=0.01)
 
     # the carved bargeboard: a broad band along the arched eave, with knots carved along it
-    us = K.samples(-arch - 0.25, arch + 0.25, 80)
+    us = K.samples(-arch - 0.25, arch + 0.25, 0.02)
     band = bmesh.new()
     P.extrude(band, [(u, top(u) + 0.03) for u in us] + [(u, top(u) - 0.30) for u in reversed(us)], -0.56, -0.44)
     for edge in (0.0, -0.27):
@@ -117,7 +116,7 @@ def ornate_front(seed=17):
         if run >= 0.17:
             run = 0.0
             slope = math.atan2(top(u1) - top(u0), u1 - u0)
-            P.box(knots, (u1, -0.58, top(u1) - 0.135), (0.09, 0.05, 0.09),
+            P.box(knots, (u1, -0.575, top(u1) - 0.135), (0.09, 0.05, 0.09),
                   Matrix.Rotation(-slope - math.pi / 4, 4, "Y"))
     b.obj("bargeboard_knots", knots, "timber", bevel=0.01)
 
