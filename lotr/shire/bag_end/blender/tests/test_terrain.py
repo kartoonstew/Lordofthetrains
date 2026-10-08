@@ -43,7 +43,7 @@ def test_no_cliffs_around_the_fronts():
     # turf never rises more than 1 m within 0.1 m (M2's first build had 3 m steps there).
     for f in L.FRONTS:
         us = np.arange(-f.width / 2 - 1.5, f.width / 2 + 1.5 + 1e-9, 0.1)
-        vs = np.arange(0.0, 2.5 + 1e-9, 0.1)
+        vs = np.arange(0.05, 2.5 + 1e-9, 0.1)                       # just behind the facade line on
         uu, vv = np.meshgrid(us, vs)
         a = np.radians(f.yaw)
         back = vv + L.facade_v(f, uu)
@@ -97,8 +97,8 @@ def test_smin_rounds_only_near_crossings():
 def test_hill_climbs_to_its_top_behind_the_fronts():
     door = L.front("door")
     top = g(*L.OAK)
-    assert top >= L.RIDGE_Z - 0.3, top
-    assert top > 2 * (door.floor + door.eave), top          # refs/09: the hill towers over the row
+    assert top >= L.DOME_TOP - 0.3, top
+    assert top > door.floor + door.eave + 1.0, top          # refs/03: well above the door's eave
 
 
 def test_sides_and_back_fall_to_a_thin_edge():
@@ -116,5 +116,5 @@ def test_no_step_is_buried():
 
 
 def test_lawn_falls_from_the_wall_to_the_lane():
-    assert abs(g(-10.0, L.WALL_Y - 0.01) - L.LAWN_Z) < 0.05
-    assert abs(g(-10.0, L.LANE_Y) - L.LANE_Z) < 0.05
+    assert abs(g(-3.0, L.WALL_Y - 0.01) - L.LAWN_Z) < 0.05
+    assert abs(g(-3.0, L.LANE_Y) - L.LANE_Z) < 0.05

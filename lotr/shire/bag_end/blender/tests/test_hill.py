@@ -33,12 +33,12 @@ def test_hill_covers_the_model_footprint_exactly():
     assert abs(min(ys) - L.LANE_Y) < 1e-4 and abs(max(ys) - L.BACK_Y) < 1e-4, (min(ys), max(ys))
 
 
-def test_hill_is_about_30_by_18_cm_at_ho_and_under_11_cm_tall():
+def test_hill_is_about_17_by_12_cm_at_ho_and_under_8_cm_tall():
     scene.reset_scene()
     obj = hill.build()
     size = [(max(v.co[i] for v in obj.data.vertices) - min(v.co[i] for v in obj.data.vertices)) * 1000 / 87
             for i in range(3)]
-    assert 300 <= size[0] <= 330 and 170 <= size[1] <= 200 and size[2] < 110, size
+    assert 150 <= size[0] <= 185 and 110 <= size[1] <= 135 and size[2] < 80, size
 
 
 def test_no_mesh_cell_slopes_in_front_of_a_facade():

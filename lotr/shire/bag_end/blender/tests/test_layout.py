@@ -27,18 +27,20 @@ def test_eave_line_of_a_faceted_front():
     assert tops.shape == us.shape and np.all(np.diff(tops[20:]) <= 1e-12)    # never rises outward
 
 
-def test_row_leaves_room_for_the_end_banks():
+def test_row_leaves_room_for_the_hill_to_slope_down_at_its_ends():
     first, last = L.FRONTS[0], L.FRONTS[-1]
     left, right = first.x - first.width / 2, last.x + last.width / 2
-    assert 24.0 < right - left < 26.5, right - left
-    assert left - L.MODEL_X[0] >= 1.2 and L.MODEL_X[1] - right >= 1.2, (left, right)
+    assert 9.5 < right - left < 11.0, right - left
+    assert left - L.MODEL_X[0] >= 2.0 and L.MODEL_X[1] - right >= 2.0, (left, right)
 
 
-def test_model_is_about_30_by_18_cm_at_ho():
+def test_compact_model_is_one_print_at_ho():
+    # About 17 x 12 cm at 1:87 (at 1:48, O scale, about 31 x 22 cm: two prints or a trimmed edge).
     width_mm = (L.MODEL_X[1] - L.MODEL_X[0]) * 1000 / 87
     depth_mm = (L.BACK_Y - L.LANE_Y) * 1000 / 87
-    assert 300 <= width_mm <= 330, width_mm
-    assert 170 <= depth_mm <= 200, depth_mm
+    assert 150 <= width_mm <= 185, width_mm
+    assert 110 <= depth_mm <= 135, depth_mm
+    assert max(width_mm, depth_mm) <= 256              # the Centauri Carbon's bed
 
 
 def test_facade_recedes_only_beyond_the_centre_facet():
