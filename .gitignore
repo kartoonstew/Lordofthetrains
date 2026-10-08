@@ -1,0 +1,13 @@
+# Python and OS clutter
+__pycache__/
+.DS_Store
+
+# Blender build outputs: tools/build_bag_end.sh regenerates them in about a minute
+*.blend
+*.blend1
+lotr/**/renders/render_*.png
+
+# Subagent-driven development scratch (snapshots, briefs, reports)
+.superpowers/
+
+# Kept on purpose: renders/compare_*.png, the photo-vs-render sheets each milestone is reviewed on.
