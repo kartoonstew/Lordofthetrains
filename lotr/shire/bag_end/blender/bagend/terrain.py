@@ -44,8 +44,9 @@ def garden(x, y):
 
 
 def hill(x, y):
-    """The Hill, refs/03: a rounded dome over the fronts, flat-topped and falling away gently at its
-    ends and back, with a bank in front over the fronts and any swells layout.py adds."""
+    """The Hill, refs/03: a rounded dome over the fronts, flat-topped, with a bank in front over the
+    fronts and any swells layout.py adds. At its ends and back it falls steeply to the model's thin
+    edge (3-4.6 m within the last 1 m)."""
     cx, cy = L.DOME_CENTRE
     ax, ay = L.DOME_RADII
     r = np.sqrt(((x - cx) / ax) ** 2 + ((y - cy) / ay) ** 2)

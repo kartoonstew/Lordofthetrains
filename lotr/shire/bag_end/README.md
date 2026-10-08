@@ -49,7 +49,8 @@ and a test print.
 
 There is no STL export yet. The model is in real-world metres and the scale is applied at
 export. The door is D = 1.57 m across, which is a choice (see the spec). The model is
-14.8 × 10.6 m, which comes to about 17 × 12 × 7 cm at HO (1:87), one print. Ryan's train is O
+14.8 × 10.6 m, which comes to about 17 × 12 × 7 cm at HO (1:87), one print; the heights are the
+hill without the chimney pot and oak (with the pot it is about 7.3 cm at HO). Ryan's train is O
 scale (1:48), where it would be about 31 × 22 × 12 cm: two prints, or a trimmed edge.
 
 ## Build and test
@@ -84,14 +85,15 @@ Under `blender/bagend/`:
 - `layout.py` holds every position and size: fronts (including the door front's facets), garden,
   hill, model extents, oak and the full row's spare fronts.
 - `terrain.py` and `hill.py` make the landform.
-- `parts.py` is the library of rustic building parts.
+- `parts.py` is the library of rustic building parts, and the render materials with their colours.
 - `doorfront.py` builds the detailed door front from those parts.
 - `frontkit.py` holds what every front shares: placement, wall, eave, round windows.
 - `fronts.py` builds the other fronts, through a builder for every front, spare ones included.
 - `garden.py` has the steps, wall, beds and chimney.
 - `props.py` has the bench, gate, letterbox, lamp post, birdhouse and rack.
 - `oak.py` has the preview oak, never printed.
-- `render.py` has the materials, light and camera positions.
+- `render.py` has the light, the cameras and the renders; `tools/side_by_side.py` makes the
+  comparison sheets.
 - `scene.py` has the shared helpers.
 
 `blender/build.py` runs them all, and `blender/tests/` has the tests.

@@ -41,6 +41,8 @@ inside Blender, system Python 3 + Pillow for the comparison sheets.
 **Spec:** `docs/superpowers/specs/2026-10-07-bag-end-blender-design.md` (updated 2026-10-08 for
 the compact scope, the O-scale option and the saved full row).
 
+**After execution:** the sources folder was removed once every copy had been checked; the files now live under `lotr/shire/bag_end/blender/` and `tools/`. To replay a task, take the sources from commit 4cc1e83.
+
 ## Global Constraints
 
 - Blender 5.0 or newer at `/Applications/Blender.app/Contents/MacOS/Blender`. Run every command
@@ -78,7 +80,7 @@ the compact scope, the O-scale option and the saved full row).
   `test_hill_is_about_17_by_12_cm_at_ho_and_under_8_cm_tall`,
   `test_the_full_rows_spare_fronts_still_build`.
 - **Every window must be visible with the hill built,** the new left window included. Test:
-  Task 3, `test_windows_can_be_seen_with_the_hill_built` (its targets come from
+  Task 3, `test_windows_can_be_seen_with_the_hill_and_garden_built` (its targets come from
   `layout.FRONTS`).
 - **Rebuilding in one session leaves one of each object,** with the garden and props included.
   Test: Task 3, `test_build_twice_gives_one_of_each`.
@@ -519,7 +521,26 @@ so the PR notes that it depends on PR #1 (milestone 3) and should be merged afte
 
 Carried to milestone 5:
 - **Choose the scale.** At HO it is one print. At O it needs splitting, or the lane edge trimmed.
+- **Look items for Ryan:**
+  - The turf beside each front rises in a near-vertical step at the facade line (up to about
+    1.8 m beside the door front), fading within about 0.2 m; between the door and lattice fronts it
+    reads as a tall tongue of turf (compare_ref05). `test_no_cliffs` starts at v = 0.05, so nothing
+    guards this step.
+  - The hill's back and ends fall steeply to the thin edge (3–4.6 m within the last metre).
 - The hill rises up to 3 cm above the door front's sod at its inner posts (concave corners).
+- Print parts:
+  - `gate_sign` hangs about 2 cm in front of the gate and is 0.29 mm thick at HO: attach and thicken it.
+  - Props are unions of overlapping shells, not welded solids.
+  - Stone and brick joints are about 0.2 mm at HO, brick relief about 0.23 mm.
+  - The chimney is in the `garden` collection with the hill's printed parts; export must split it
+    out by name. On the dome's slope its lowest course stands about 9 cm above the ground on the
+    downhill side; the chimney socket should cover that.
+  - The dry-stone wall's courses stop up to 6 cm short of the capstones, showing the core.
+- Code:
+  - The door front's side sod uses bare numbers (−0.4, 24); nothing tests the no-wedge fix or the
+    lantern clearance.
+  - The letterbox offset and the wall gap (tied to `STEPS[3]`) are set in `garden.py`, not `layout.py`.
+  - No whole-scene test checks that every mesh has exactly one material from `parts.materials()`.
 - From earlier ledgers:
   - minimum feature sizes (cames 0.14 mm, lantern posts 0.23 mm at HO)
   - lantern connectivity

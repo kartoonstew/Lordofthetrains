@@ -2,7 +2,6 @@
 the rack. Each is built where layout.py puts it, standing on the ground, into the "props"
 collection, from rustic parts (bent timber, worn planks)."""
 import math
-import random
 
 import bmesh
 from mathutils import Matrix
@@ -59,7 +58,7 @@ def gate(x, y, seed=37):
 
 
 def letterbox(x, y, seed=41):
-    """A hollow-log letterbox on a short post (refs/04)."""
+    """A log letterbox on a short post (refs/04)."""
     bm = bmesh.new()
     P.timber(bm, (0.0, 0.0, 0.42), (0.1, 0.1, 0.95), seed=seed, amp=0.004)
     log = bmesh.ops.create_cone(bm, cap_ends=True, segments=20, radius1=0.13, radius2=0.12, depth=0.48,
@@ -86,7 +85,7 @@ def birdhouse(x, y, seed=47):
     P.timber(bm, (0.0, 0.0, 1.0), (0.07, 0.07, 2.2), seed=seed, amp=0.006)
     P.box(bm, (0.0, 0.0, 2.2), (0.26, 0.26, 0.3))
     for s in (-1, 1):                                                                # roof slabs
-        P.box(bm, (s * 0.09, 0.0, 2.42), (0.24, 0.34, 0.03), Matrix.Rotation(s * math.radians(-50), 4, "Y"))
+        P.box(bm, (s * 0.08, 0.0, 2.39), (0.24, 0.34, 0.03), Matrix.Rotation(s * math.radians(50), 4, "Y"))
     _obj("birdhouse", bm, "timber", _place(x, y, sink=0.2), bevel=0.005)
 
 

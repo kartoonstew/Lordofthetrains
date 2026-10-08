@@ -29,8 +29,7 @@ class Front:
     dig_behind: float = 0.2   # the ground is dug out to this far behind the facade
 
 
-# Each front is true HO size; the grass banks between them are shortened so the whole hill
-# comes to about 32 x 19 cm at 1:87 (the owner asked for about 30 cm in milestone 1).
+# Each front is true HO size.
 # The compact Bag End (chosen 2026-10-08): the green-door front, a small round window tucked into
 # the hill's left end and the lattice window at its right, under their own hill, as in refs/03.
 # The full row of five fronts is saved at git tag bag-end-full-row-m3.

@@ -1,10 +1,14 @@
-"""The four fronts other than the door front, in rustic detail, built with frontkit and parts.
+"""The fronts other than the door front, in rustic detail, built with frontkit and parts.
 
-- round_window_west, round_window_rack: small fronts with an arched eave and one round window
-  with wheel glazing (refs/09, 10).
+build() makes the ones layout.FRONTS lists: the small round window front at the left
+(round_window_left) and the lattice window front. BUILDERS also keeps builders for the full row's
+spare fronts, for later hobbit holes.
+
+- round_window_left, round_window_west, round_window_rack: small fronts with an arched eave and one
+  round window with wheel glazing (refs/09, 10).
 - lattice_window: the round window with a square lattice in a heavy timber ring (refs/03, 05).
-- ornate: the big front with the carved arched bargeboard, half-timbering and a tall arched
-  leaded window, plus a small round window on its left wing (refs/08, 09).
+- ornate (spare): the big front with the carved arched bargeboard, half-timbering and a tall
+  arched leaded window, plus a small round window on its left wing (refs/08, 09).
 """
 import math
 
@@ -145,6 +149,7 @@ def build():
     """Build every front in layout.FRONTS except the door front (doorfront.py); return their objects."""
     objs = []
     for f in L.FRONTS:
-        if f.name in BUILDERS:
-            objs += BUILDERS[f.name]()
+        if f.name == "door":
+            continue
+        objs += BUILDERS[f.name]()            # a front without a builder is a KeyError, not a gap
     return objs

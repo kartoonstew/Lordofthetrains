@@ -13,7 +13,8 @@ from mathutils import Matrix, Vector, noise
 
 from . import scene
 
-# Base colours (linear RGB), shared with render.py so its plain-coloured garden parts match.
+# Base colours (linear RGB) for the materials below; render.py also uses them as its fallback
+# colours for an object with no material.
 PLASTER = (0.50, 0.34, 0.10)
 BRICK = (0.30, 0.085, 0.045)
 STONE = (0.12, 0.115, 0.105)

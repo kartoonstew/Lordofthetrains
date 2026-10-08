@@ -33,6 +33,18 @@ def test_every_prop_is_a_closed_solid_planted_in_the_ground():
             assert low <= float(terrain.ground(x, y)) + 0.01, (o.name, low)
 
 
+def test_birdhouse_roof_is_peaked():
+    # In the birdhouse's own frame: the roof slabs are highest where they meet over the middle and
+    # fall to the eaves, which hang just past the box's walls (x = +-0.13) and still touch its top (z = 2.35).
+    scene.reset_scene()
+    props.birdhouse(3.0, -1.7)
+    verts = [v.co for v in bpy.data.objects["birdhouse"].data.vertices]
+    ridge = max(v.z for v in verts if abs(v.x) < 0.05)       # the slabs' inner ends (the pole ends at 2.1)
+    eaves = [v.z for v in verts if abs(v.x) > 0.14]          # outside the box walls: only the slabs
+    assert ridge > max(eaves) + 0.1, (ridge, max(eaves))
+    assert min(eaves) <= 2.35, min(eaves)                    # the roof reaches down to the box top
+
+
 def test_props_are_repeatable():
     def bench():
         scene.reset_scene()

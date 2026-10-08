@@ -7,9 +7,10 @@ from mathutils.kdtree import KDTree
 
 from bagend import frontkit as K, fronts, garden, hill, layout as L, scene
 
-# The fronts this scene builds (the door front has its own tests); the full row's spare fronts are
-# built directly by their builders where a test needs them.
-NAMES = tuple(f.name for f in L.FRONTS if f.name in fronts.BUILDERS)
+# Every front this scene lists except the door front (it has its own tests), so a front added to
+# layout.FRONTS without a builder fails here. The full row's spare fronts are built directly by
+# their builders where a test needs them.
+NAMES = tuple(f.name for f in L.FRONTS if f.name != "door")
 
 
 def first_hit(origin, target):

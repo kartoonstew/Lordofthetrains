@@ -1,4 +1,5 @@
-"""Plain-material Cycles renders from cameras matched to the reference photos."""
+"""Cycles renders from cameras matched to the reference photos, in the sky light. Every object
+carries its own material from parts.materials(); paint() only gives a plain one to a mesh with none."""
 import math
 from pathlib import Path
 
@@ -7,9 +8,9 @@ from mathutils import Vector
 
 from . import parts, scene
 
-# Object name prefix -> base colour (linear RGB). First match wins.
+# Object name prefix -> fallback base colour (linear RGB) for an object with no material. First
+# match wins. The current scene has no such object; paint() and these are kept for new, plain parts.
 COLOURS = (
-    ("hill", parts.TURF),
     ("step_", parts.STONE),
     ("wall_", parts.STONE),
     ("chimney", parts.BRICK),
@@ -42,9 +43,11 @@ def material(name, colour):
 
 
 def paint():
-    """Plain colours by name prefix, for the garden's plain blocks; detailed parts keep their own.
+    """Give a plain colour, by name prefix, to a mesh that has no material at all.
 
-    The plain materials are named plain_*, so they never reuse a detailed part's material.
+    Every object in the current scene already has one from parts.materials(), so this changes
+    nothing there; it is a fallback for a new part added without a material. The plain materials
+    are named plain_*, so they never reuse a detailed part's material.
     """
     for obj in bpy.data.objects:
         if obj.type != "MESH" or any(obj.data.materials):
