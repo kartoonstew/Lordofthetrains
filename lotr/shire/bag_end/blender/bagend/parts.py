@@ -13,7 +13,7 @@ from mathutils import Matrix, Vector, noise
 
 from . import scene
 
-# Base colours (linear RGB), shared with render.py so block-out parts match the detailed ones.
+# Base colours (linear RGB), shared with render.py so its plain-coloured garden parts match.
 PLASTER = (0.62, 0.42, 0.13)
 BRICK = (0.30, 0.085, 0.045)
 STONE = (0.25, 0.24, 0.22)
@@ -356,8 +356,9 @@ def eave_hood(bm_fascia, bm_soffit, us, eave, out, rng, seed):
         u += w
         if b - a < 0.02:
             continue
-        e = eave((a + b) / 2) + rng.uniform(-0.006, 0.004)
-        vs = box(bm_soffit, ((a + b) / 2, (-out + 0.11) / 2, e - 0.035), (b - a, out - 0.01, 0.07))
+        drop = rng.uniform(-0.006, 0.004)            # each board follows the eave across its width,
+        ea, eb = eave(a) + drop, eave(b) + drop      # so on a steep arch the boards stay edge to edge
+        vs = extrude(bm_soffit, [(a, ea), (b, eb), (b, eb - 0.07), (a, ea - 0.07)], -out + 0.06, 0.05)
         wobble(vs, 0.004, 5.0, seed + u)
 
 
@@ -434,3 +435,33 @@ def pot(name, mat, coll, matrix):
 def sod(bm, us, eave, v0, v1):
     """Turf sitting on a wall mass, so the hill runs down onto the eave."""
     extrude(bm, [(u, eave(u) - 0.02) for u in us] + [(u, eave(u) + 0.14) for u in reversed(us)], v0, v1)
+
+
+def lattice_bars(bm, cu, cz, r, v, width=0.03, depth=0.04, square=0.34):
+    """Lattice of a round window as at Bag End (refs/05): a central square split by a cross that
+    runs on to the rim, and diagonals from the square's corners out to the rim: twelve panes."""
+    h = square * r                                   # half the central square's side
+    for k in (-1, 1):
+        box(bm, (cu + k * h, v, cz), (width, depth, 2 * h + width))        # the square's sides
+        box(bm, (cu, v, cz + k * h), (2 * h + width, depth, width))
+    box(bm, (cu, v, cz), (width, depth, 2 * r))                            # the cross, rim to rim
+    box(bm, (cu, v, cz), (2 * r, depth, width))
+    d0 = h * math.sqrt(2)
+    for k in range(4):                                                     # corner diagonals
+        a = math.pi / 4 + k * math.pi / 2
+        mid = (d0 + r) / 2
+        box(bm, (cu + mid * math.cos(a), v, cz + mid * math.sin(a)), (r - d0, depth, width),
+            Matrix.Rotation(-a, 4, "Y"))
+
+
+def wheel_bars(bm, cu, cz, r, v, spokes=8, width=0.025, depth=0.04):
+    """Spokes from a small hub ring to the rim, like a cart wheel."""
+    hub = 0.28 * r
+    for a0 in (0.0, math.pi):                       # the hub ring, as two half rings
+        arc_block(bm, cu, cz, hub - width / 2, hub + width / 2, a0, a0 + math.pi,
+                  v - depth / 2, v + depth / 2, seg=12)
+    for k in range(spokes):
+        a = 2 * math.pi * k / spokes
+        mid = (hub + r) / 2
+        box(bm, (cu + mid * math.cos(a), v, cz + mid * math.sin(a)), (r - hub, depth, width),
+            Matrix.Rotation(-a, 4, "Y"))

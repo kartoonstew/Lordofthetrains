@@ -37,6 +37,7 @@ def hill(x, y):
 
 
 BACK_SLOPE = 62.0   # degrees: the turf climbs from a front's eave back into the hill
+TUCK = 0.03         # the hill passes this far under each front's sod, so the sod shows, not the hill
 
 
 def dig(f, x, y):
@@ -54,12 +55,17 @@ def dig(f, x, y):
     u = dx * np.cos(a) + dy * np.sin(a)
     v = -dx * np.sin(a) + dy * np.cos(a) - L.facade_v(f, u)
     du = np.maximum(0.0, np.abs(u) - f.width / 2)
+    inside = du == 0.0                   # behind the facade, within the front's wall mass
+    if f.centre:                         # a side facet's wall ends square to the facet, not to the row
+        w = np.radians(f.wing_angle)
+        along = (np.abs(u) - f.centre) * np.cos(w) + (v + L.facade_v(f, u)) * np.sin(w)
+        inside &= along <= (f.width / 2 - f.centre) / np.cos(w)
     lip = f.eave_ends + L.SOD
     cheek = lip * ramp(du, 0.0, 0.4) * ramp(v, -lip / np.tan(np.radians(60)), 0.0)
     bank = f.floor + np.tan(np.radians(50)) * du + cheek
-    turf = (f.floor + L.eave_top(f, u) + L.SOD
+    turf = (f.floor + L.eave_top(f, u) + L.SOD - TUCK
             + np.maximum(0.0, v - L.WALL_DEPTH) * np.tan(np.radians(BACK_SLOPE)))
-    behind = np.where((du == 0.0) & (v < f.dig_behind), f.floor, np.maximum(bank, turf))
+    behind = np.where(inside & (v < f.dig_behind), f.floor, np.maximum(bank, turf))
     return np.where(v < 0.0, bank, behind)
 
 

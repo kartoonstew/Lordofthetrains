@@ -6,13 +6,11 @@ placed where layout.py puts the door front. Its outline (width, facets, eave lin
 layout.py; the door, portholes and trim are sized here, in metres, from refs/01, 02 and 06.
 """
 import math
-import random
 
 import bmesh
-import bpy
 from mathutils import Matrix
 
-from . import layout as L, parts as P
+from . import frontkit as K, layout as L, parts as P
 
 D = L.D
 F = L.front("door")
@@ -23,13 +21,12 @@ RING = 0.08                   # grey timber ring lining the doorway
 REVEAL = 0.22                 # door boards set back from the facade
 C = F.centre                  # centre facet half-width (inner posts at +-C)
 PHI = math.radians(F.wing_angle)        # side facets angle back into the hill
-POST = 0.12                   # timber posts, square
+POST = K.POST
 S = (F.width / 2 - C) / math.cos(PHI) - POST / 2   # side facet length, to the outer post's centre
-EAVE_OUT = 0.32
+EAVE_OUT = K.EAVE_OUT
 P_CZ = 0.75 * D + SILL        # porthole centre height
 P_GLASS, P_FRAME = 0.18, 0.065
 WALL_DEPTH = L.WALL_DEPTH
-COLL = "door_front"
 
 
 def eave_centre(u):
@@ -48,21 +45,11 @@ def side_matrix(sign):
             @ Matrix.Scale(sign, 4, (1, 0, 0)))
 
 
-def placement():
-    """Front frame to world: the door front stands where layout.py puts it, turned by its yaw."""
-    f = L.front("door")
-    return Matrix.Translation((f.x, f.y, f.floor)) @ Matrix.Rotation(math.radians(f.yaw), 4, "Z")
-
-
 def build(seed=7):
-    """Build every part of the door front into the "door_front" collection and return them."""
-    rng = random.Random(seed)
-    m = P.materials()
-    place = placement()
-
-    def obj(name, bm, mat, matrix=None, bevel=0.0):
-        local = Matrix.Identity(4) if matrix is None else matrix
-        return P.to_object(f"doorfront_{name}", bm, m[mat], COLL, place @ local, bevel)
+    """Build every part of the door front into the "door_front" collection and return them; its
+    flower pots go to "props", since they print separately."""
+    b = K.Builder(L.front("door"), "doorfront", seed)
+    rng, m, place, obj = b.rng, b.m, b.place, b.obj
 
     us = [-C + 2 * C * i / 60 for i in range(61)]
     su = [S * i / 20 for i in range(21)]
@@ -71,7 +58,7 @@ def build(seed=7):
     bm = bmesh.new()
     P.plaster_slab(bm, -C, C, -0.3, eave_centre, WALL_DEPTH, seed)
     wall = obj("wall_centre", bm, "plaster")
-    P.bake_cuts(wall, [P.cylinder_cutter(0.0, CZ, R_DOOR + RING - 0.002, -0.3, REVEAL + 0.08, COLL, place)])
+    P.bake_cuts(wall, [b.disc_cutter(0.0, CZ, R_DOOR + RING - 0.002, -0.3, REVEAL + 0.08)])
 
     bm = bmesh.new()
     P.segmented_ring(bm, 0.0, CZ, R_DOOR, R_DOOR + RING, -0.03, REVEAL + 0.01, 10, rng, seed)
@@ -120,7 +107,7 @@ def build(seed=7):
     obj("lantern_glass", glass, "glass")
 
     bm = bmesh.new()
-    P.sod(bm, us, eave_centre, 0.03, WALL_DEPTH)
+    P.sod(bm, us, eave_centre, -EAVE_OUT + 0.06, WALL_DEPTH)     # turf over the hood too, as in the photos
     obj("sod_centre", bm, "turf")
 
     # --- side facets, each with a porthole -----------------------------------------------
@@ -130,9 +117,9 @@ def build(seed=7):
         bm = bmesh.new()
         P.plaster_slab(bm, 0.0, S, -0.3, eave_side, WALL_DEPTH, seed + 10 * s)
         wall = obj(f"wall_{label}", bm, "plaster", mat)
-        P.bake_cuts(wall, [P.cylinder_cutter(uc, P_CZ, P_GLASS + P_FRAME - 0.002, -0.3, 0.09, COLL, place @ mat),
+        P.bake_cuts(wall, [b.disc_cutter(uc, P_CZ, P_GLASS + P_FRAME - 0.002, -0.3, 0.09, mat),
                            # the side slab swings back behind the centre facet: keep it out of the doorway
-                           P.cylinder_cutter(0.0, CZ, R_DOOR + RING - 0.002, -0.3, REVEAL + 0.08, COLL, place)])
+                           b.disc_cutter(0.0, CZ, R_DOOR + RING - 0.002, -0.3, REVEAL + 0.08)])
 
         bm = bmesh.new()
         P.segmented_ring(bm, uc, P_CZ, P_GLASS, P_GLASS + P_FRAME, -0.025, 0.12, 6, rng, seed + s)
@@ -159,8 +146,8 @@ def build(seed=7):
         obj(f"{label}_soffit", soffit, "timber", mat, bevel=0.006)
 
         bm = bmesh.new()
-        P.sod(bm, su, eave_side, 0.03, WALL_DEPTH)
+        P.sod(bm, su, eave_side, -EAVE_OUT + 0.06, WALL_DEPTH)
         obj(f"{label}_sod", bm, "turf", mat)
 
-        P.pot(f"doorfront_pot_{label}", m["terracotta"], COLL, place @ Matrix.Translation((s * 1.02, -0.42, 0.0)))
-    return list(bpy.data.collections[COLL].objects)
+        P.pot(f"doorfront_pot_{label}", m["terracotta"], "props", place @ Matrix.Translation((s * 1.02, -0.42, 0.0)))
+    return b.objects()

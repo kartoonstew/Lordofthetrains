@@ -69,7 +69,7 @@ For a simple piece that doesn't need Blender, write it in OpenSCAD with `lib/ho.
 
 | Model | Size (W × D × H) | 0.2 nozzle, 0.10 layers | 0.4 nozzle, 0.12 layers | Status |
 |---|---|---|---|---|
-| [Bag End](lotr/shire/bag_end/) | about 32 × 19 × 10 cm at HO; fronts true size | – | – | Blender rebuild, milestone 2 |
+| [Bag End](lotr/shire/bag_end/) | about 32 × 19 × 10 cm at HO; fronts true size | – | – | Blender rebuild, milestone 3 |
 
 ## Ideas
 

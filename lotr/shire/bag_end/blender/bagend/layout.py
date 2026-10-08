@@ -126,5 +126,5 @@ STEPS = (
 GATE = (2.6, -8.2)
 BENCH = (-2.6, -2.4)
 BIRDHOUSE = (3.3, -1.7)
-LAMPS = ((-10.7, -0.7), (-2.7, -1.6))
+LAMPS = ((-10.0, -0.7), (-2.7, -1.6))   # the first stands between the ornate front's wing window and arch
 RACK = (-12.6, -1.0)
