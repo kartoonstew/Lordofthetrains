@@ -109,6 +109,18 @@ def test_door_boards_stay_inside_the_doorway():
     bm.free()
 
 
+def test_glazing_bars_stay_inside_their_pane():
+    cu, cz, r, v = 0.3, 1.2, 0.4, 0.06
+    for bars in (P.grid_bars, P.wheel_bars):
+        bm = bmesh.new()
+        bars(bm, cu, cz, r, v)
+        assert len(bm.verts) > 0, bars.__name__
+        for p in bm.verts:
+            assert math.hypot(p.co.x - cu, p.co.z - cz) <= r + 0.03, (bars.__name__, tuple(p.co))
+            assert abs(p.co.y - v) <= 0.02 + 1e-6, (bars.__name__, tuple(p.co))
+        bm.free()
+
+
 def test_bake_cuts_makes_a_real_hole_and_removes_the_cutters():
     scene.reset_scene()
     bm = bmesh.new()

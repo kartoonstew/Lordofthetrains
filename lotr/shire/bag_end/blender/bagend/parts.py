@@ -434,3 +434,28 @@ def pot(name, mat, coll, matrix):
 def sod(bm, us, eave, v0, v1):
     """Turf sitting on a wall mass, so the hill runs down onto the eave."""
     extrude(bm, [(u, eave(u) - 0.02) for u in us] + [(u, eave(u) + 0.14) for u in reversed(us)], v0, v1)
+
+
+def grid_bars(bm, cu, cz, r, v, pitch=0.13, width=0.03, depth=0.04):
+    """Square lattice of glazing bars clipped to a round pane."""
+    n = int(r / pitch)
+    for k in range(-n, n + 1):
+        d = k * pitch
+        half = math.sqrt(max(r * r - d * d, 0.0))
+        if half < 0.02:
+            continue
+        box(bm, (cu + d, v, cz), (width, depth, 2 * half))
+        box(bm, (cu, v, cz + d), (2 * half, depth, width))
+
+
+def wheel_bars(bm, cu, cz, r, v, spokes=8, width=0.025, depth=0.04):
+    """Spokes from a small hub ring to the rim, like a cart wheel."""
+    hub = 0.28 * r
+    for a0 in (0.0, math.pi):                       # the hub ring, as two half rings
+        arc_block(bm, cu, cz, hub - width / 2, hub + width / 2, a0, a0 + math.pi,
+                  v - depth / 2, v + depth / 2, seg=12)
+    for k in range(spokes):
+        a = 2 * math.pi * k / spokes
+        mid = (hub + r) / 2
+        box(bm, (cu + mid * math.cos(a), v, cz + mid * math.sin(a)), (r - hub, depth, width),
+            Matrix.Rotation(-a, 4, "Y"))
