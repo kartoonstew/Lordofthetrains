@@ -1,0 +1,99 @@
+"""Ground height as a function of plan position, vectorised over numpy arrays."""
+import numpy as np
+
+from . import layout as L
+
+
+def ease(t):
+    t = np.clip(t, 0.0, 1.0)
+    return 0.5 - 0.5 * np.cos(np.pi * t)
+
+
+def ramp(v, a, b):
+    return ease((v - a) / (b - a))
+
+
+def smin(a, b, k):
+    """Minimum with the crease rounded over about k, so banks meet in soft hollows, not sharp V's."""
+    h = np.maximum(k - np.abs(a - b), 0.0) / k
+    return np.minimum(a, b) - h * h * k / 4
+
+
+def garden(x, y):
+    """Lane and lawn in front, the dry-stone wall, then the terrace path along the fronts."""
+    lawn = L.LANE_Z + (L.LAWN_Z - L.LANE_Z) * ramp(y, L.LANE_Y, L.WALL_Y)
+    return np.where(y < L.WALL_Y, lawn, L.TERRACE_Z) + 0.0 * x
+
+
+def hill(x, y):
+    """The Hill: a bank over the fronts, then a steep climb to the top, swelling over the ornate front."""
+    ornate = L.front("ornate")
+    swell = L.ORNATE_RISE * np.exp(-(((x - ornate.x) / 5.0) ** 2))
+    height = L.CREST_Z + swell + (L.RIDGE_Z - L.CREST_Z) * ramp(y, L.CREST_Y, L.RIDGE_Y)
+    front = ramp(y, L.CREST_Y - 2.2, L.CREST_Y)
+    ends = ramp(x, L.MODEL_X[0], L.MODEL_X[0] + L.END_FALL) * ramp(L.MODEL_X[1] - x, 0.0, L.END_FALL)
+    back = ramp(L.BACK_Y - y, 0.0, L.BACK_FALL)
+    return height * front * ends * back
+
+
+BACK_SLOPE = 62.0   # degrees: the turf climbs from a front's eave back into the hill
+
+
+def dig(f, x, y):
+    """Ground dug out for a front: its floor in front, grass banks either side, turf over the top.
+
+    In front of the facade the floor runs straight ahead, and beside it the bank stands as high as
+    the turf on the eave ends, sloping down toward the garden (refs/01, 03). Behind the facade the
+    floor runs on f.dig_behind, clear of the door recess and more than one hill grid cell (hill.STEP
+    = 0.15), so the mesh's sloped cell lands inside the wall mass. Over the wall mass the ground
+    comes down to the turf on the eave, and behind it climbs back into the hill at BACK_SLOPE, so
+    the turf rolls down onto the front instead of standing behind it as a cliff.
+    """
+    a = np.radians(f.yaw)
+    dx, dy = x - f.x, y - f.y
+    u = dx * np.cos(a) + dy * np.sin(a)
+    v = -dx * np.sin(a) + dy * np.cos(a) - L.facade_v(f, u)
+    du = np.maximum(0.0, np.abs(u) - f.width / 2)
+    lip = f.eave_ends + L.SOD
+    cheek = lip * ramp(du, 0.0, 0.4) * ramp(v, -lip / np.tan(np.radians(60)), 0.0)
+    bank = f.floor + np.tan(np.radians(50)) * du + cheek
+    turf = (f.floor + L.eave_top(f, u) + L.SOD
+            + np.maximum(0.0, v - L.WALL_DEPTH) * np.tan(np.radians(BACK_SLOPE)))
+    behind = np.where((du == 0.0) & (v < f.dig_behind), f.floor, np.maximum(bank, turf))
+    return np.where(v < 0.0, bank, behind)
+
+
+def edge(x, y):
+    """1 inside the model, easing to 0 at its sides and back, where the ground falls to a thin edge."""
+    return (ramp(x, L.MODEL_X[0], L.MODEL_X[0] + L.EDGE_FALL) * ramp(L.MODEL_X[1] - x, 0.0, L.EDGE_FALL)
+            * ramp(L.BACK_Y - y, 0.0, L.EDGE_FALL))
+
+
+def steps_cut(x, y):
+    """Lower the ground along the flagstone steps so every slab sits on it."""
+    pts = list(L.STEPS) + [(L.GATE[0], L.GATE[1], L.STEPS[-1][2] - 0.1)]
+    out = np.full(np.shape(x), np.inf)
+    for (x0, y0, z0), (x1, y1, z1) in zip(pts[:-1], pts[1:]):
+        sx, sy = x1 - x0, y1 - y0
+        t = np.clip(((x - x0) * sx + (y - y0) * sy) / (sx * sx + sy * sy), 0.0, 1.0)
+        d = np.hypot(x - (x0 + t * sx), y - (y0 + t * sy))
+        z = z0 + t * (z1 - z0) - 0.03 + np.maximum(0.0, d - 0.45) * 3.0
+        out = np.minimum(out, z)
+    return out
+
+
+BLEND = 0.8   # how softly each dug-out meets the hill and the next one
+
+
+def ground(x, y):
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    z = garden(x, y) + hill(x, y)       # the hill rises from the terrace; it is zero over the lawn
+    for f in L.FRONTS:
+        d = dig(f, x, y)
+        # Round the crease where a dug-out cuts into the hill, but never below the front's floor:
+        # where the dug floor meets level ground (the terrace path) there is no crease to round.
+        z = np.maximum(smin(z, d, BLEND), np.minimum(np.minimum(z, d), f.floor))
+    z = np.minimum(z, steps_cut(x, y))
+    z = L.EDGE_Z + (z - L.EDGE_Z) * edge(x, y)
+    return np.maximum(z, L.EDGE_Z)
