@@ -14,17 +14,19 @@ from mathutils import Matrix, Vector, noise
 from . import scene
 
 # Base colours (linear RGB), shared with render.py so its plain-coloured garden parts match.
-PLASTER = (0.62, 0.42, 0.13)
+PLASTER = (0.50, 0.34, 0.10)
 BRICK = (0.30, 0.085, 0.045)
-STONE = (0.25, 0.24, 0.22)
-TURF = (0.06, 0.14, 0.03)
+STONE = (0.12, 0.115, 0.105)
+TURF = (0.03, 0.08, 0.014)
 
 
 # ---------------------------------------------------------------- materials (renders only)
 
 def materials():
-    """Render materials by name, made once per scene: per-island colour variation and fine bump."""
-    def mat(name, colour, rough=0.85, metal=0.0, vary=0.0, bump=0.0, bump_scale=40.0):
+    """Render materials by name, made once per scene: colour that varies per piece (vary) and in
+    soft patches across a surface (mottle: a second colour and the patch scale per metre), plus a
+    fine bump. The variation is what keeps plain plaster, turf and stone from looking like toys."""
+    def mat(name, colour, rough=0.85, metal=0.0, vary=0.0, bump=0.0, bump_scale=40.0, mottle=None):
         if name in bpy.data.materials:
             return bpy.data.materials[name]
         m = bpy.data.materials.new(name)
@@ -32,15 +34,40 @@ def materials():
         b = nt.nodes["Principled BSDF"]
         b.inputs["Roughness"].default_value = rough
         b.inputs["Metallic"].default_value = metal
+        base = None
+        if mottle:
+            coords = nt.nodes.new("ShaderNodeTexCoord")
+            patches = nt.nodes.new("ShaderNodeTexNoise")
+            patches.inputs["Scale"].default_value = mottle[1]
+            patches.inputs["Detail"].default_value = 6.0
+            nt.links.new(coords.outputs["Object"], patches.inputs["Vector"])
+            two = nt.nodes.new("ShaderNodeValToRGB")
+            two.color_ramp.elements[0].position, two.color_ramp.elements[1].position = 0.35, 0.65
+            two.color_ramp.elements[0].color = (*colour, 1)
+            two.color_ramp.elements[1].color = (*mottle[0], 1)
+            nt.links.new(patches.outputs["Fac"], two.inputs["Fac"])
+            base = two.outputs["Color"]
         if vary:
             geo = nt.nodes.new("ShaderNodeNewGeometry")
             ramp = nt.nodes.new("ShaderNodeValToRGB")
-            ramp.color_ramp.elements[0].color = (*[c * (1 - vary) for c in colour], 1)
-            ramp.color_ramp.elements[1].color = (*[min(1.0, c * (1 + vary)) for c in colour], 1)
+            if base is None:
+                ramp.color_ramp.elements[0].color = (*[c * (1 - vary) for c in colour], 1)
+                ramp.color_ramp.elements[1].color = (*[min(1.0, c * (1 + vary)) for c in colour], 1)
+                base = ramp.outputs["Color"]
+            else:
+                ramp.color_ramp.elements[0].color = (1 - vary, 1 - vary, 1 - vary, 1)
+                ramp.color_ramp.elements[1].color = (1 + vary, 1 + vary, 1 + vary, 1)
+                mix = nt.nodes.new("ShaderNodeMix")
+                mix.data_type, mix.blend_type = "RGBA", "MULTIPLY"
+                mix.inputs["Factor"].default_value = 1.0
+                nt.links.new(base, mix.inputs[6])
+                nt.links.new(ramp.outputs["Color"], mix.inputs[7])
+                base = mix.outputs[2]
             nt.links.new(geo.outputs["Random Per Island"], ramp.inputs["Fac"])
-            nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
-        else:
+        if base is None:
             b.inputs["Base Color"].default_value = (*colour, 1)
+        else:
+            nt.links.new(base, b.inputs["Base Color"])
         if bump:
             tex = nt.nodes.new("ShaderNodeTexNoise")
             tex.inputs["Scale"].default_value = bump_scale
@@ -50,7 +77,7 @@ def materials():
             nt.links.new(bmp.outputs["Normal"], b.inputs["Normal"])
         return m
     return {
-        "plaster": mat("plaster", PLASTER, bump=0.3),
+        "plaster": mat("plaster", PLASTER, bump=0.3, mottle=((0.34, 0.24, 0.085), 2.5)),
         "brick": mat("brick", BRICK, vary=0.4, bump=0.2),
         "timber": mat("timber", (0.075, 0.05, 0.032), vary=0.3, bump=0.15, bump_scale=90.0),
         "ring": mat("ring", (0.20, 0.19, 0.17), rough=0.9, vary=0.15, bump=0.15, bump_scale=90.0),
@@ -59,9 +86,12 @@ def materials():
         "brass": mat("brass", (0.80, 0.58, 0.20), rough=0.3, metal=1.0),
         "glass": mat("glass", (0.02, 0.03, 0.04), rough=0.05),
         "green_paint": mat("green_paint", (0.015, 0.14, 0.07), rough=0.55, bump=0.1),
-        "stone": mat("stone", STONE, vary=0.15, bump=0.4),
+        "stone": mat("stone", STONE, vary=0.2, bump=0.4, mottle=((0.05, 0.07, 0.025), 4.0)),
         "terracotta": mat("terracotta", (0.40, 0.14, 0.06), rough=0.8),
-        "turf": mat("turf", TURF, rough=0.95, bump=0.4),
+        "turf": mat("turf", TURF, rough=0.95, bump=0.4, mottle=((0.075, 0.13, 0.025), 1.2)),
+        "soil": mat("soil", (0.055, 0.035, 0.022), rough=1.0, bump=0.5, mottle=((0.03, 0.02, 0.012), 6.0)),
+        "bark": mat("bark", (0.085, 0.065, 0.045), vary=0.2, bump=0.4, bump_scale=60.0),
+        "leaves": mat("leaves", (0.028, 0.075, 0.016), rough=0.9, vary=0.35, bump=0.5),
     }
 
 
@@ -411,12 +441,32 @@ def leaded_glass(bm_glass, bm_came, cu, cz, r, v):
             (0.012, 0.008, 0.8 * r), Matrix.Rotation(ang + math.pi / 2, 4, "Y"))
 
 
-def rough_stone(bm, centre, size, rng, seed, amp=0.012):
-    """A worn stone slab: a subdivided block with lumpy faces."""
+def rough_stone(bm, centre, size, rng, seed, amp=0.012, rot=None, cuts=4):
+    """A worn stone or slab: a subdivided block with lumpy faces."""
     def build(b):
-        vs = box(b, centre, size)
-        bmesh.ops.subdivide_edges(b, edges=list({e for v in vs for e in v.link_edges}), cuts=4, use_grid_fill=True)
+        vs = box(b, centre, size, rot)
+        bmesh.ops.subdivide_edges(b, edges=list({e for v in vs for e in v.link_edges}), cuts=cuts,
+                                  use_grid_fill=True)
     wobble(new_verts(bm, build), amp, 4.0, seed)
+
+
+def flagstone(bm, centre, length, width, thick, yaw, rng, seed):
+    """A worn slate slab: an irregular rounded outline, its top at centre's height."""
+    cx, cy, top = centre
+    pts = []
+    for k in range(10):
+        t = 2 * math.pi * k / 10
+        r = 1.0 + rng.uniform(-0.12, 0.06)
+        u, v = 0.5 * length * r * math.cos(t), 0.5 * width * r * math.sin(t)
+        u, v = math.copysign(abs(u) ** 0.8 * (0.5 * length) ** 0.2, u), v      # squarer ends, like split slate
+        pts.append((cx + u * math.cos(yaw) - v * math.sin(yaw), cy + u * math.sin(yaw) + v * math.cos(yaw)))
+    bot = [bm.verts.new((x, y, top - thick)) for x, y in pts]
+    tops = [bm.verts.new((x, y, top + rng.uniform(-0.006, 0.0))) for x, y in pts]
+    bm.faces.new(list(reversed(bot)))
+    bm.faces.new(tops)
+    for i in range(10):
+        j = (i + 1) % 10
+        bm.faces.new((bot[i], bot[j], tops[j], tops[i]))
 
 
 def pot(name, mat, coll, matrix):
@@ -437,7 +487,7 @@ def sod(bm, us, eave, v0, v1):
     extrude(bm, [(u, eave(u) - 0.02) for u in us] + [(u, eave(u) + 0.14) for u in reversed(us)], v0, v1)
 
 
-def lattice_bars(bm, cu, cz, r, v, width=0.03, depth=0.04, square=0.34):
+def lattice_bars(bm, cu, cz, r, v, width=0.03, depth=0.04, square=0.45):
     """Lattice of a round window as at Bag End (refs/05): a central square split by a cross that
     runs on to the rim, and diagonals from the square's corners out to the rim: twelve panes."""
     h = square * r                                   # half the central square's side
