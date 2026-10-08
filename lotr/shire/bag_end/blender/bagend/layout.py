@@ -124,6 +124,10 @@ STEPS = (
     (2.45, -7.3, -1.43),
 )
 GATE = (2.6, -8.2)
+# Soil beds for Ryan's flowers and shrubs, either side of the steps, refs/04, 05: (x, y, half-length,
+# half-width, direction in degrees)
+BEDS = ((-0.6, -2.3, 0.55, 0.3, 20.0), (2.0, -2.5, 0.5, 0.3, -30.0),
+        (0.4, -5.2, 0.6, 0.35, 70.0), (3.2, -5.6, 0.6, 0.3, 75.0))
 BENCH = (-2.6, -2.4)
 BIRDHOUSE = (3.3, -1.7)
 LAMPS = ((-10.0, -0.7), (-2.7, -1.6))   # the first stands between the ornate front's wing window and arch
