@@ -58,8 +58,9 @@ static grass) after printing, so vegetation is not modelled.
   - `parts.py`: shared building pieces: brick arch, porthole with brick sill, planked door with
     nail heads, timber post with knee brace, curved eave, lantern on bracket, stone slab,
     chimney.
-  - one module per detailed front (`doorfront.py` first), each assembled from `parts.py`;
-    fronts not yet detailed stay as plain blocks (`blockout.py`).
+  - `frontkit.py`: what every front shares (placement from `layout.py`, plastered wall, eave
+    with timber and turf, round windows); `doorfront.py` and `fronts.py` (the other four) are
+    assembled from it and `parts.py`.
   - `garden.py`: dry-stone walls, steps, soil beds, props.
   - `export.py`: scaling, splitting, pockets, pins, hollowing, STL per part.
   - `render.py`: Cycles renders from cameras matched to the reference photos, and
@@ -108,7 +109,8 @@ static grass) after printing, so vegetation is not modelled.
 2. Door front in full detail, against 01, 02 and the owner's low-angle photo. This sets the
    detail standard. It also carries the layout fixes from the milestone 1 review: the size
    compression, a higher and steeper hill, and thin side and back edges.
-3. The other four fronts.
+3. The other four fronts, built from a shared front kit that the door front moves onto too.
+   Windows stay blind recesses behind their glass until milestone 5 decides on lighting.
 4. Garden: steps, walls, beds, props.
 5. Print prep: split, pockets, pins, hollowing, export at 1:87, and a test print of the door
    front and one hill section before the full run.
@@ -117,5 +119,7 @@ static grass) after printing, so vegetation is not modelled.
 
 - No straight-on photos of fronts 1–3 yet; detail there comes from refs/08–10 until better
   photos arrive.
+- Windows that open right through (for lights behind them) need a hollow pocket in the hill;
+  decide in milestone 5. Until then every window is a 9 cm recess behind its glass.
 - The owner's three chat images are not on disk; they belong in `refs/` with credits if they
   are to be kept.
