@@ -21,14 +21,14 @@ turf now runs over the hood as in the photos.
 
 `terrain.py` is tightened where the hill meets the fronts:
 - no floor slot behind the door front's angled side walls
-- the hill tucks 3 cm under each front's sod
-- the hill mesh keeps hard edges at real creases
+- the hill tucks 3 cm under each front's sod, which also removes the dark band at the ornate
+  front's wings
 
 `blockout.py` is retired, and `build.py` builds all five detailed fronts. Two new cameras match
 refs 05 and 08.
 
 The code was prototyped and checked before this plan was written. Replaying the three code
-tasks in order gives the RED and GREEN results stated in each task, ending at 63/63 tests with a
+tasks in order gives the RED and GREEN results stated in each task, ending at 64/64 tests with a
 1.5 min build. Every new front part is a closed solid. The final files are saved in
 `docs/superpowers/plans/2026-10-07-bag-end-m3-sources/`, with the same paths as under
 `lotr/shire/bag_end/blender/` (plus `tools/`).
@@ -89,7 +89,6 @@ lotr/shire/bag_end/blender/
     frontkit.py   CREATE   placement, Builder, wall(), eave(), round_window()          (Task 1)
     doorfront.py  REPLACE  built with frontkit; pots to "props"; turf over the hood     (Task 1)
     terrain.py    REPLACE  no slot behind faceted side walls; hill tucks under the sod  (Task 1)
-    hill.py       REPLACE  hard edges at creases (set_sharp_from_angle)               (Task 1)
     parts.py      REPLACE  + grid_bars, wheel_bars                                     (Task 2)
     fronts.py     CREATE   the four fronts; ROUND_WINDOWS, ARCHED_WINDOW               (Task 2)
     render.py     REPLACE  block-out colours removed; cameras ref05, ref08             (Task 3)
@@ -112,7 +111,7 @@ READMEs                  MODIFY                                                 
 
 **Files:**
 - Create: `B/bagend/frontkit.py` (from `S/bagend/frontkit.py`)
-- Replace: `B/bagend/doorfront.py`, `B/bagend/terrain.py`, `B/bagend/hill.py` (from `S/bagend/`)
+- Replace: `B/bagend/doorfront.py`, `B/bagend/terrain.py` (from `S/bagend/`)
 - Replace: `B/tests/test_doorfront.py`, `B/tests/test_terrain.py` (from `S/tests/`)
 
 **What changes:**
@@ -137,10 +136,10 @@ READMEs                  MODIFY                                                 
   - The floor behind a faceted front is limited to its walls' footprint. A side facet's wall ends
     square to the facet, which closes the reviewer's one-cell slot behind each outer post.
   - The turf cap sits `TUCK = 0.03` under the sod top.
-- `hill.py`: after `shade_smooth()`, `set_sharp_from_angle(angle=radians(50))` keeps creases and
-  skirts crisp. This removes the dark smooth-shading bands at the ornate front's wings.
 - Tests:
-  - `test_doorfront.py` uses `K.placement(L.front("door"))`.
+  - `test_doorfront.py` uses `K.placement(L.front("door"))`, and gains
+    `test_the_sod_shows_on_top_of_the_door_front_not_the_hill`: rays straight down onto the
+    centre facet hit the sod, not the hill. This pins TUCK; it fails at TUCK = 0.
   - In `test_terrain.py`, the door-recess test samples the centre facet, where the recess is. The
     wall-end test also samples behind a faceted front's outer posts, at u = ±(width/2 − 0.03),
     v = 0.2 and 0.4.
@@ -170,7 +169,7 @@ Expected: the run aborts with `ImportError: cannot import name 'frontkit'`.
 - [ ] **Step 3: Copy the code**
 
 ```bash
-cp docs/superpowers/plans/2026-10-07-bag-end-m3-sources/bagend/{frontkit,doorfront,terrain,hill}.py lotr/shire/bag_end/blender/bagend/
+cp docs/superpowers/plans/2026-10-07-bag-end-m3-sources/bagend/{frontkit,doorfront,terrain}.py lotr/shire/bag_end/blender/bagend/
 ```
 
 Then check that each copied file is identical to its source, with `diff` for every file.
@@ -178,12 +177,12 @@ Then check that each copied file is identical to its source, with `diff` for eve
 - [ ] **Step 4: GREEN**
 
 Run: `tools/blender.sh lotr/shire/bag_end/blender/tests/run_tests.py test_doorfront test_terrain test_hill`
-Expected: `24/24 passed`.
+Expected: `25/25 passed`.
 
 - [ ] **Step 5: Whole suite**
 
 Run: `tools/blender.sh lotr/shire/bag_end/blender/tests/run_tests.py`
-Expected: `58/58 passed`.
+Expected: `59/59 passed`.
 
 - [ ] **Step 6: Report** (the controller reviews, then commits:
   `refactor(bag_end): front kit; door front on it; hill meets fronts cleanly`)
@@ -262,7 +261,7 @@ Expected: `16/16 passed`.
 - [ ] **Step 5: Whole suite**
 
 Run: `tools/blender.sh lotr/shire/bag_end/blender/tests/run_tests.py`
-Expected: `65/65 passed`.
+Expected: `66/66 passed`.
 
 - [ ] **Step 6: Report** (the controller reviews, then commits:
   `feat(bag_end): ornate, lattice and round-window fronts`)
@@ -329,7 +328,7 @@ Expected: `9/9 passed`.
 - [ ] **Step 5: Whole suite**
 
 Run: `tools/blender.sh lotr/shire/bag_end/blender/tests/run_tests.py`
-Expected: `63/63 passed`.
+Expected: `64/64 passed`.
 
 - [ ] **Step 6: Full build**
 

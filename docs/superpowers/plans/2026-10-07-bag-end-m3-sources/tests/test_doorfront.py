@@ -43,6 +43,18 @@ def test_door_and_portholes_can_be_seen_with_the_hill_built():
         assert name and "porthole" in name, (s, name)
 
 
+def test_the_sod_shows_on_top_of_the_door_front_not_the_hill():
+    # The hill tucks under each front's sod (terrain.TUCK), so from above you see the sod.
+    scene.reset_scene()
+    hill.build()
+    DF.build()
+    place = K.placement(L.front("door"))
+    for u in (-0.7, -0.35, 0.0, 0.35, 0.7):
+        top = place @ Vector((u, 0.75, 6.0))
+        name = first_hit(top, top - Vector((0.0, 0.0, 1.0)))
+        assert name == "doorfront_sod_centre", (u, name)
+
+
 def test_door_front_is_the_size_layout_says():
     # layout.py is the single source: the built front fills its dug-out and its eave is the layout's.
     scene.reset_scene()

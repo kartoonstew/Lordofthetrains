@@ -27,7 +27,6 @@ EAVE_OUT = K.EAVE_OUT
 P_CZ = 0.75 * D + SILL        # porthole centre height
 P_GLASS, P_FRAME = 0.18, 0.065
 WALL_DEPTH = L.WALL_DEPTH
-COLL = "door_front"            # frontkit's collection for the "door" front
 
 
 def eave_centre(u):
