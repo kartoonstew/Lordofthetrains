@@ -41,7 +41,8 @@ def test_windows_can_be_seen_with_the_hill_built():
         centre = place @ Vector((u, 0.0, z))
         out = (place.to_3x3() @ Vector((0.0, -1.0, 0.0))).normalized()
         hit = first_hit(centre + 3.0 * out, centre)
-        assert hit and hit.startswith(name + "_") and "window" in hit, (name, u, z, hit)
+        part = hit[len(name) + 1:] if hit and hit.startswith(name + "_") else ""
+        assert part.startswith(("window_", "side_window_")), (name, u, z, hit)
 
 
 def test_each_front_fills_its_dug_out():
@@ -63,8 +64,10 @@ def test_ornate_bargeboard_follows_the_eave():
     band = bpy.data.objects["ornate_bargeboard"]
     to_front = K.placement(f).inverted() @ band.matrix_world
     pts = [to_front @ v.co for v in band.data.vertices]
-    crown = max(p.z for p in pts if abs(p.x) < 0.1)
-    assert abs(crown - (f.eave + 0.03)) < 0.01, crown
+    for u in (0.0, 0.5 * f.arch, -0.8 * f.arch):        # all along the arch, not just its crown
+        near = [p.z for p in pts if abs(p.x - u) < 0.012]
+        want = L.eave_top(f, u) + 0.03
+        assert near and abs(max(near) - want) < 0.03, (u, max(near) if near else None, want)
     assert max(abs(p.x) for p in pts) < f.width / 2
 
 
