@@ -27,13 +27,15 @@ def test_turf_comes_down_onto_every_front():
 
 def test_turf_covers_the_ends_of_every_wall_mass():
     # Beside a front, behind its facade line, the bank stands at the turf on its eave ends: no slot.
+    # A side facet's wall ends square to the facet, so behind the outer post the ground is turf too.
     for f in L.FRONTS:
         lip = f.floor + f.eave_ends + L.SOD
         for s in (-1, 1):
-            u = s * (f.width / 2 + 0.05)
-            for v in np.arange(0.1, L.WALL_DEPTH, 0.1):
-                z = g(*L.to_world(f, u, float(L.facade_v(f, u)) + v))
-                assert z >= lip - 0.35, (f.name, s, round(v, 1), z, lip)
+            for u, vs in ((s * (f.width / 2 + 0.05), np.arange(0.1, L.WALL_DEPTH, 0.1)),
+                          (s * (f.width / 2 - 0.03), (0.2, 0.4) if f.centre else ())):
+                for v in vs:
+                    z = g(*L.to_world(f, u, float(L.facade_v(f, u)) + v))
+                    assert z >= lip - 0.35, (f.name, round(u, 2), round(v, 1), z, lip)
 
 
 def test_no_cliffs_around_the_fronts():
@@ -67,9 +69,9 @@ def test_ground_is_dug_out_in_front_of_every_front():
 
 
 def test_door_front_is_dug_out_to_its_recess_depth():
-    # The door sits 0.22 m back in its ring; the hill must not reach into that recess.
+    # The door sits 0.22 m back in its ring, across the centre facet; the hill must not reach into it.
     door = L.front("door")
-    for u in np.linspace(-0.9 * door.width / 2, 0.9 * door.width / 2, 7):
+    for u in np.linspace(-door.centre, door.centre, 7):
         x, y = L.to_world(door, u, float(L.facade_v(door, u)) + door.dig_behind - 0.05)
         assert g(x, y) <= door.floor + 0.05, (round(u, 2), g(x, y))
 

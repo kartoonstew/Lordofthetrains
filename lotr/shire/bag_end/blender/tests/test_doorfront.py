@@ -5,7 +5,7 @@ import bpy
 from mathutils import Vector
 from mathutils.kdtree import KDTree
 
-from bagend import doorfront as DF, hill, layout as L, scene
+from bagend import doorfront as DF, frontkit as K, hill, layout as L, scene
 
 
 def first_hit(origin, target):
@@ -34,7 +34,7 @@ def test_door_and_portholes_can_be_seen_with_the_hill_built():
         z = DF.CZ + dz * DF.R_DOOR
         name = first_hit((0.1, -4.0, z), (0.1, 0.0, z))
         assert name and name.startswith("doorfront_door"), (dz, name)
-    place = DF.placement()
+    place = K.placement(L.front("door"))
     for s in (-1, 1):
         facet = place @ DF.side_matrix(s)
         centre = facet @ Vector((DF.S / 2, 0.0, DF.P_CZ))
@@ -77,14 +77,14 @@ def test_door_front_follows_its_layout_placement():
         return {o.name: [o.matrix_world @ v.co for v in o.data.vertices] for o in DF.build()}
 
     scene.reset_scene()
-    before, old = world_points(), DF.placement()
+    before, old = world_points(), K.placement(L.front("door"))
     door = L.front("door")
     moved = dataclasses.replace(door, x=door.x + 5.0, y=door.y + 1.0, floor=door.floor + 0.3, yaw=10.0)
     saved = L.FRONTS
     L.FRONTS = tuple(moved if f is door else f for f in saved)
     try:
         scene.reset_scene()
-        after, shift = world_points(), DF.placement() @ old.inverted()
+        after, shift = world_points(), K.placement(L.front("door")) @ old.inverted()
     finally:
         L.FRONTS = saved
     assert after.keys() == before.keys()

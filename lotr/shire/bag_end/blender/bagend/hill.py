@@ -35,5 +35,6 @@ def build():
     side_faces = np.stack([ring, ring + n, nxt + n, nxt], axis=1)
     faces = np.concatenate([top_faces, bottom_faces, side_faces]).tolist()
     obj = scene.add_mesh_object("hill", verts.tolist(), faces, "terrain")
-    obj.data.shade_smooth()     # render only: hides the grid's facets on steep banks
+    obj.data.shade_smooth()     # render only: hides the grid's facets on steep banks...
+    obj.data.set_sharp_from_angle(angle=math.radians(50))   # ...but keeps real creases and skirts crisp
     return obj
