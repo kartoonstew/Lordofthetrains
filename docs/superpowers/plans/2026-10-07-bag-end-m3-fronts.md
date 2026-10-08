@@ -39,6 +39,8 @@ inside Blender, system Python 3 + Pillow for the comparison sheets.
 **Spec:** `docs/superpowers/specs/2026-10-07-bag-end-blender-design.md` (updated for M3: the
 front kit, windows as blind recesses until M5).
 
+**After execution:** the sources folder was removed once every copy had been checked; the files now live under `lotr/shire/bag_end/blender/` and `tools/`.
+
 ## Global Constraints
 
 - Blender 5.0 or newer at `/Applications/Blender.app/Contents/MacOS/Blender`. Run every command
