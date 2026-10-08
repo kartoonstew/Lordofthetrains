@@ -111,7 +111,7 @@ def test_door_boards_stay_inside_the_doorway():
 
 def test_glazing_bars_stay_inside_their_pane():
     cu, cz, r, v = 0.3, 1.2, 0.4, 0.06
-    for bars in (P.grid_bars, P.wheel_bars):
+    for bars in (P.lattice_bars, P.wheel_bars):
         bm = bmesh.new()
         bars(bm, cu, cz, r, v)
         assert len(bm.verts) > 0, bars.__name__

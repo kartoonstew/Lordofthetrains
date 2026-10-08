@@ -54,6 +54,20 @@ def eave_line(f):
     return lambda u: L.eave_top(f, u)
 
 
+def arch_offset(f, d, n=120):
+    """The arched part of a front's eave, offset d along its outward normal (d < 0 goes in), from
+    one foot to the other. layout.eave_top's arch is half an ellipse: f.arch wide, eave − eave_ends
+    tall; sampling by angle keeps its steep feet as smooth as its crown."""
+    a, c = f.arch, f.eave - f.eave_ends
+    pts = []
+    for k in range(n + 1):
+        t = math.pi * k / n
+        nu, nz = c * math.cos(t), a * math.sin(t)
+        length = math.hypot(nu, nz)
+        pts.append((a * math.cos(t) + d * nu / length, f.eave_ends + c * math.sin(t) + d * nz / length))
+    return pts
+
+
 def samples(u0, u1, step=0.03):
     """Evenly spaced u from u0 to u1, about step apart, so curved eaves stay smooth."""
     n = max(2, round((u1 - u0) / step))
@@ -84,7 +98,7 @@ def eave(b, panels, posts=True, label="", out=EAVE_OUT):
         for s in (-1, 1):
             u = s * (half - POST / 2)
             P.timber(bm, (u, 0.0, (top(u) - 0.2) / 2), (POST, POST, top(u) + 0.2), seed=b.seed + 5 * s)
-            P.knee_brace(bm, u - s * 0.02, top(u) - 0.06, seed=b.seed + 7 * s)
+            P.knee_brace(bm, u - s * 0.02, top(u) - 0.06, seed=b.seed + 7 * s, depth=out - 0.06)
     b.obj(f"timber{label}", bm, "timber", bevel=0.012)
     fascia, soffit = bmesh.new(), bmesh.new()
     P.eave_hood(fascia, soffit, us, top, out, b.rng, b.seed)
@@ -109,7 +123,7 @@ def round_window(b, label, cu, cz, r_open, frame=0.07, glazing="wheel", frame_ma
         P.leaded_glass(glass, bars, cu, cz, r, 0.066)
     else:
         P.disc(glass, cu, cz, r, 0.071, 0.091)
-        (P.grid_bars if glazing == "grid" else P.wheel_bars)(bars, cu, cz, r, 0.06)
+        (P.lattice_bars if glazing == "lattice" else P.wheel_bars)(bars, cu, cz, r, 0.06)
     b.obj(f"{label}_glass", glass, "glass")
     b.obj(f"{label}_bars", bars, "iron" if glazing == "diamond" else frame_mat, bevel=0.004)
     if bricks or sill:

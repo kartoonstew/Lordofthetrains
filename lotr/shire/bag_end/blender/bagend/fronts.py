@@ -39,7 +39,7 @@ def round_window_front(name, seed):
 def lattice_front(seed=13):
     f = L.front("lattice_window")
     b = K.Builder(f, seed=seed)
-    cut = K.round_window(b, "window", *ROUND_WINDOWS[f.name], frame=0.09, glazing="grid", frame_mat="timber")
+    cut = K.round_window(b, "window", *ROUND_WINDOWS[f.name], frame=0.09, glazing="lattice", frame_mat="timber")
     K.wall(b, [cut])
     K.eave(b, panels=((0.0, f.width / 2),))
     return b.objects()
@@ -99,25 +99,31 @@ def ornate_front(seed=17):
         P.timber(ht, (s * (post_u + arch - 0.08) / 2, -0.02, (z0 + z1) / 2), (math.hypot(dx, z1 - z0), 0.1, 0.11),
                  Matrix.Rotation(-ang, 4, "Y"), seed=seed + 30 * s)
     P.arc_block(ht, 0.0, spring, post_u - 0.07, post_u + 0.07, 0.0, math.pi, -0.06, 0.06, seg=24)
+    for u in (-0.55, 0.0, 0.55):                                  # studs from the arch up to the bargeboard
+        z0 = spring + math.sqrt((post_u + 0.07) ** 2 - u * u) - 0.03
+        z1 = top(u) - 0.27
+        P.timber(ht, (u, -0.02, (z0 + z1) / 2), (0.12, 0.11, z1 - z0), seed=seed + 40 + round(u * 10))
     b.obj("timbering", ht, "timber", bevel=0.01)
 
-    # the carved bargeboard: a broad band along the arched eave, with knots carved along it
-    us = K.samples(-arch - 0.25, arch + 0.25, 0.02)
+    # the carved bargeboard: an even-width band along the arched eave, landing on a corbel at each
+    # foot (refs/08), with knots carved down its middle
+    outer, inner = K.arch_offset(f, 0.03), K.arch_offset(f, -0.30)
     band = bmesh.new()
-    P.extrude(band, [(u, top(u) + 0.03) for u in us] + [(u, top(u) - 0.30) for u in reversed(us)], -0.56, -0.44)
-    for edge in (0.0, -0.27):
-        P.extrude(band, [(u, top(u) + edge + 0.03) for u in us] + [(u, top(u) + edge) for u in reversed(us)],
-                  -0.59, -0.54)
+    P.extrude(band, outer + list(reversed(inner)), -0.56, -0.44)
+    for d0, d1 in ((0.03, 0.0), (-0.27, -0.30)):                  # a bead along each edge
+        P.extrude(band, K.arch_offset(f, d0) + list(reversed(K.arch_offset(f, d1))), -0.59, -0.54)
+    for s in (-1, 1):
+        P.box(band, (s * (arch - 0.135), -0.47, f.eave_ends - 0.17), (0.40, 0.2, 0.34))
     b.obj("bargeboard", band, "timber", bevel=0.008)
     knots = bmesh.new()
+    mid = K.arch_offset(f, -0.135, n=600)
     run = 0.0
-    for u0, u1 in zip(us, us[1:]):
-        run += math.hypot(u1 - u0, top(u1) - top(u0))
-        if run >= 0.17:
+    for (u0, z0), (u1, z1) in zip(mid, mid[1:]):
+        run += math.hypot(u1 - u0, z1 - z0)
+        if run >= 0.17 and z1 > f.eave_ends + 0.1:
             run = 0.0
-            slope = math.atan2(top(u1) - top(u0), u1 - u0)
-            P.box(knots, (u1, -0.575, top(u1) - 0.135), (0.09, 0.05, 0.09),
-                  Matrix.Rotation(-slope - math.pi / 4, 4, "Y"))
+            P.box(knots, (u1, -0.575, z1), (0.08, 0.05, 0.08),
+                  Matrix.Rotation(-math.atan2(z1 - z0, u1 - u0) - math.pi / 4, 4, "Y"))
     b.obj("bargeboard_knots", knots, "timber", bevel=0.01)
 
     K.eave(b, panels=((-(arch + half) / 2, (half - arch) / 2), (0.0, arch), ((arch + half) / 2, (half - arch) / 2)),

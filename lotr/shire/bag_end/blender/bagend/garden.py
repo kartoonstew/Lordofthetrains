@@ -1,4 +1,5 @@
-"""Milestone 1 block-out: steps, dry-stone wall, props, chimneys and the preview oak."""
+"""Garden, still as plain blocks until milestone 4: steps, dry-stone wall, props, chimneys and the
+preview oak."""
 import math
 
 import bmesh

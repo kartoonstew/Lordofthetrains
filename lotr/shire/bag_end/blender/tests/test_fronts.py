@@ -1,10 +1,11 @@
 import dataclasses
+import math
 
 import bpy
 from mathutils import Vector
 from mathutils.kdtree import KDTree
 
-from bagend import frontkit as K, fronts, hill, layout as L, scene
+from bagend import frontkit as K, fronts, garden, hill, layout as L, scene
 
 NAMES = ("round_window_west", "round_window_rack", "lattice_window", "ornate")
 
@@ -28,11 +29,13 @@ def test_every_front_is_built_named_and_has_one_material_per_part():
     assert not [o.name for o in bpy.data.objects if o.name.startswith("cutter")]
 
 
-def test_windows_can_be_seen_with_the_hill_built():
-    # Look straight at the middle of every window from 3 m out: its glass or bars come first.
+def test_windows_can_be_seen_with_the_hill_and_garden_built():
+    # Look straight at the middle of every window from 3 m out: its glass or bars come first, not
+    # turf, plaster or a garden prop standing in front of it.
     scene.reset_scene()
     hill.build()
     fronts.build()
+    garden.build()
     targets = [(n, *fronts.ROUND_WINDOWS[n][:2]) for n in NAMES]
     half, z0, height = fronts.ARCHED_WINDOW
     targets.append(("ornate", 0.0, z0 + 0.4 * height))
@@ -69,6 +72,45 @@ def test_ornate_bargeboard_follows_the_eave():
         want = L.eave_top(f, u) + 0.03
         assert near and abs(max(near) - want) < 0.03, (u, max(near) if near else None, want)
     assert max(abs(p.x) for p in pts) < f.width / 2
+
+
+def front_points(name, part):
+    f = L.front(name)
+    obj = bpy.data.objects[f"{name}_{part}"]
+    to_front = K.placement(f).inverted() @ obj.matrix_world
+    return f, [to_front @ v.co for v in obj.data.vertices]
+
+
+def test_ornate_bargeboard_keeps_its_width_down_to_its_feet():
+    # refs/08: an even band all the way down; measured across, low on the flank, it is still wide.
+    scene.reset_scene()
+    fronts.build()
+    f, pts = front_points("ornate", "bargeboard")
+    z = f.eave_ends + 0.3
+    us = [p.x for p in pts if p.x > 0 and abs(p.z - z) < 0.05]     # a slice deep enough to catch both edges
+    assert us and max(us) - min(us) >= 0.25, (min(us), max(us)) if us else None
+
+
+def test_arch_offset_stays_its_distance_from_the_eave():
+    f = L.front("ornate")
+    a, c = f.arch, f.eave - f.eave_ends
+    curve = [(a * math.cos(t), f.eave_ends + c * math.sin(t))
+             for t in (math.pi * k / 4000 for k in range(4001))]
+    for d in (0.03, -0.30):
+        for u, z in K.arch_offset(f, d)[::10]:
+            gap = min(math.hypot(u - cu, z - cz) for cu, cz in curve)
+            assert abs(gap - abs(d)) < 0.005, (d, u, z, gap)
+
+
+def test_soffit_boards_follow_the_eave_across_their_width():
+    # On the ornate front's steep arch, flat boards would step like ladder rungs.
+    scene.reset_scene()
+    fronts.build()
+    f, pts = front_points("ornate", "soffit")
+    for p in pts:
+        if abs(p.x) <= 0.95 * f.arch:
+            e = L.eave_top(f, p.x)
+            assert e - 0.10 <= p.z <= e + 0.03, (round(p.x, 3), round(p.z, 3), round(e, 3))
 
 
 def test_fronts_follow_their_layout_placement():

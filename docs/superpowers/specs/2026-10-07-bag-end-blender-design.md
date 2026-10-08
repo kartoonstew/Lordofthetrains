@@ -91,10 +91,11 @@ static grass) after printing, so vegetation is not modelled.
 
 ## Checking
 
-- **Matched-camera renders** for refs 01, 02, 03, 09 and 10, with plain materials (ochre
-  plaster, brick, timber, stone, flat green for flocked areas), placed next to the photo. The
-  fronts are true size, so close views of them (01, 02, 03) line up with their photos; the hill
-  is compressed, so the wide views (09, 10) only frame the same scene.
+- **Matched-camera renders** for refs 01, 02, 03, 05, 08, 09 and 10, with plain materials
+  (ochre plaster, brick, timber, stone, flat green for flocked areas), placed next to the photo.
+  The fronts are true size, so the door views (01, 02, 03) line up with their photos and 05 and
+  08 show their fronts from near where those photos were taken; the hill is compressed, so the
+  wide views (09, 10) only frame the same scene.
 - **Print checks on every exported part:**
   - watertight
   - nothing under 0.3 mm at HO where it matters

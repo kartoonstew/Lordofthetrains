@@ -54,8 +54,9 @@ The tests run inside Blender and print one `PASS` or `FAIL` line each.
   `ref05`, `ref08`, `ref09`, `ref10`).
 - `renders/compare_<camera>.png`: the reference photo on the left and the matching render on
   the right, for `ref01`, `ref02`, `ref03`, `ref05`, `ref08`, `ref09` and `ref10`. The fronts
-  are true size, so the front views (01, 02, 03, 05, 08) line up with their photos. The hill is
-  compressed, so the wide views (09, 10) only frame the same scene.
+  are true size, so the door views (01, 02, 03) line up with their photos, and 05 and 08 show
+  their fronts from near where those photos were taken. The hill is compressed, so the wide
+  views (09, 10) only frame the same scene.
 
 ## Code
 
